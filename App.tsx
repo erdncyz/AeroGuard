@@ -26,28 +26,74 @@ const App: React.FC = () => {
 
   const t = translations[lang];
 
+  // Uygulama başlangıcında cache temizleme ve error handling
+  useEffect(() => {
+    try {
+      // localStorage'da sorunlu veri varsa temizle
+      const checkAndClearCache = () => {
+        try {
+          // Test için localStorage'ı oku
+          const testKey = '__aeroguard_test__';
+          localStorage.setItem(testKey, 'test');
+          localStorage.removeItem(testKey);
+        } catch (e) {
+          // localStorage erişim hatası, temizle
+          console.warn('localStorage temizleniyor...');
+          try {
+            localStorage.clear();
+          } catch (clearErr) {
+            console.error('localStorage temizlenemedi:', clearErr);
+          }
+        }
+      };
+
+      checkAndClearCache();
+    } catch (err) {
+      console.error('Cache kontrolü hatası:', err);
+    }
+  }, []);
+
   const loadLocationData = useCallback(async () => {
     setLoading(true);
     try {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
-            const data = await waqiService.fetchByGeo(pos.coords.latitude, pos.coords.longitude);
-            setStationData(data);
-            setLoading(false);
+            try {
+              const data = await waqiService.fetchByGeo(pos.coords.latitude, pos.coords.longitude);
+              setStationData(data);
+            } catch (err) {
+              console.error('Geo veri hatası:', err);
+              // Hata durumunda IP'ye geç
+              const data = await waqiService.fetchByIP();
+              setStationData(data);
+            } finally {
+              setLoading(false);
+            }
           },
           async () => {
-            const data = await waqiService.fetchByIP();
-            setStationData(data);
-            setLoading(false);
+            try {
+              const data = await waqiService.fetchByIP();
+              setStationData(data);
+            } catch (err) {
+              console.error('IP veri hatası:', err);
+            } finally {
+              setLoading(false);
+            }
           }
         );
       } else {
-        const data = await waqiService.fetchByIP();
-        setStationData(data);
-        setLoading(false);
+        try {
+          const data = await waqiService.fetchByIP();
+          setStationData(data);
+        } catch (err) {
+          console.error('Veri yükleme hatası:', err);
+        } finally {
+          setLoading(false);
+        }
       }
     } catch (err) {
+      console.error('Konum yükleme hatası:', err);
       setLoading(false);
     }
   }, []);
