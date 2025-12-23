@@ -20,6 +20,8 @@ const App: React.FC = () => {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+  const [cleanestRegion, setCleanestRegion] = useState<SearchResult | null>(null);
+  const [mostPollutedRegion, setMostPollutedRegion] = useState<SearchResult | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [activeWidgetType, setActiveWidgetType] = useState<'classic' | 'wide' | 'detailed'>('classic');
@@ -264,9 +266,19 @@ const App: React.FC = () => {
                           .sort();
                         setAvailableCities(cities);
                       }
+
+                      // En temiz ve en kirli bölgeleri bul
+                      if (results.length > 0) {
+                        const sorted = [...results].sort((a, b) => parseInt(a.aqi) - parseInt(b.aqi));
+                        setCleanestRegion(sorted[0]); // En düşük AQI = En temiz
+                        setMostPollutedRegion(sorted[sorted.length - 1]); // En yüksek AQI = En kirli
+                      }
                     } catch (err) {
                       console.error('Şehirler yüklenemedi:', err);
                     }
+                  } else {
+                    setCleanestRegion(null);
+                    setMostPollutedRegion(null);
                   }
                 }}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
@@ -364,6 +376,65 @@ const App: React.FC = () => {
             </div>
           </div>
         </section>
+
+        {/* Cleanest & Most Polluted Regions */}
+        {(cleanestRegion || mostPollutedRegion) && (
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Cleanest Region */}
+            {cleanestRegion && (
+              <div
+                onClick={() => selectStation(cleanestRegion.uid)}
+                className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[2.5rem] p-6 sm:p-8 border border-emerald-100 cursor-pointer hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-emerald-500 p-3 rounded-2xl shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{t.cleanestRegion}</p>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight group-hover:text-emerald-600 transition-colors">{cleanestRegion.station.name}</h3>
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <div className={`text-4xl font-black ${getAqiMetadata(parseInt(cleanestRegion.aqi)).color.replace('bg-', 'text-')}`}>
+                    {cleanestRegion.aqi}
+                  </div>
+                  <div className="text-sm font-bold text-slate-600">AQI</div>
+                </div>
+                <p className="text-xs text-slate-500 mt-2 font-medium">{cleanestRegion.time.stime}</p>
+              </div>
+            )}
+
+            {/* Most Polluted Region */}
+            {mostPollutedRegion && (
+              <div
+                onClick={() => selectStation(mostPollutedRegion.uid)}
+                className="bg-gradient-to-br from-red-50 to-orange-50 rounded-[2.5rem] p-6 sm:p-8 border border-red-100 cursor-pointer hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-red-500 p-3 rounded-2xl shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-red-600 uppercase tracking-widest">{t.mostPolluted}</p>
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight group-hover:text-red-600 transition-colors">{mostPollutedRegion.station.name}</h3>
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <div className={`text-4xl font-black ${getAqiMetadata(parseInt(mostPollutedRegion.aqi)).color.replace('bg-', 'text-')}`}>
+                    {mostPollutedRegion.aqi}
+                  </div>
+                  <div className="text-sm font-bold text-slate-600">AQI</div>
+                </div>
+                <p className="text-xs text-slate-500 mt-2 font-medium">{mostPollutedRegion.time.stime}</p>
+              </div>
+            )}
+          </section>
+        )}
 
         {stationData && (
           <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-10">
