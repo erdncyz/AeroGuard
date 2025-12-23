@@ -11,7 +11,9 @@ export const translations = {
     pollutantBreakdown: "Pollutant Breakdown",
     conditions: "Conditions",
     browseTurkey: "Browse Turkey",
+    browseWorld: "Browse World",
     selectProvince: "Select a Province",
+    selectCity: "Select a City",
     heatmap: "Global Heatmap",
     stationView: "Current Station",
     checkingAir: "Checking the air...",
@@ -97,7 +99,9 @@ export const translations = {
     pollutantBreakdown: "Kirletici Dağılımı",
     conditions: "Hava Koşulları",
     browseTurkey: "Türkiye'yi Keşfet",
+    browseWorld: "Dünyayı Keşfet",
     selectProvince: "Bir İl Seçin",
+    selectCity: "Bir Şehir Seçin",
     heatmap: "Küresel Isı Haritası",
     stationView: "Mevcut İstasyon",
     checkingAir: "Hava kontrol ediliyor...",
@@ -177,3 +181,37 @@ export const translations = {
 export const TURKEY_PROVINCES = [
   "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın", "Balıkesir", "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli", "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane", "Hakkari", "Hatay", "Isparta", "Mersin", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir", "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir", "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat", "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman", "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye", "Düzce"
 ].sort((a, b) => a.localeCompare(b, 'tr'));
+
+export const WORLD_CITIES = [
+  // Europe
+  "London, UK", "Paris, France", "Berlin, Germany", "Madrid, Spain", "Rome, Italy",
+  "Amsterdam, Netherlands", "Vienna, Austria", "Prague, Czech Republic", "Athens, Greece",
+  "Stockholm, Sweden", "Copenhagen, Denmark", "Oslo, Norway", "Helsinki, Finland",
+  "Brussels, Belgium", "Zurich, Switzerland", "Dublin, Ireland", "Lisbon, Portugal",
+  "Warsaw, Poland", "Budapest, Hungary", "Bucharest, Romania",
+
+  // Asia
+  "Tokyo, Japan", "Beijing, China", "Shanghai, China", "Seoul, South Korea",
+  "Hong Kong", "Singapore", "Bangkok, Thailand", "Mumbai, India", "Delhi, India",
+  "Dubai, UAE", "Tel Aviv, Israel", "Jakarta, Indonesia", "Manila, Philippines",
+  "Kuala Lumpur, Malaysia", "Taipei, Taiwan", "Hanoi, Vietnam", "Ho Chi Minh, Vietnam",
+  "Dhaka, Bangladesh", "Karachi, Pakistan", "Tehran, Iran", "Riyadh, Saudi Arabia",
+
+  // North America
+  "New York, USA", "Los Angeles, USA", "Chicago, USA", "San Francisco, USA",
+  "Miami, USA", "Boston, USA", "Seattle, USA", "Washington DC, USA",
+  "Toronto, Canada", "Vancouver, Canada", "Montreal, Canada",
+  "Mexico City, Mexico", "Guadalajara, Mexico",
+
+  // South America
+  "São Paulo, Brazil", "Rio de Janeiro, Brazil", "Buenos Aires, Argentina",
+  "Santiago, Chile", "Lima, Peru", "Bogotá, Colombia", "Caracas, Venezuela",
+
+  // Africa
+  "Cairo, Egypt", "Lagos, Nigeria", "Johannesburg, South Africa", "Cape Town, South Africa",
+  "Nairobi, Kenya", "Casablanca, Morocco", "Algiers, Algeria", "Tunis, Tunisia",
+
+  // Oceania
+  "Sydney, Australia", "Melbourne, Australia", "Brisbane, Australia",
+  "Auckland, New Zealand", "Wellington, New Zealand"
+].sort();

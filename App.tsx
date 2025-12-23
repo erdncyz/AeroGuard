@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import * as waqiService from './services/waqiService';
 import { StationData, SearchResult, Language } from './types';
 import { getAqiMetadata } from './constants';
-import { translations, TURKEY_PROVINCES } from './translations';
+import { translations, TURKEY_PROVINCES, WORLD_CITIES } from './translations';
 import PollutantCard from './components/PollutantCard';
 import AirMap from './components/AirMap';
 
@@ -295,6 +295,25 @@ const App: React.FC = () => {
                   >
                     <option value="">{t.selectProvince}</option>
                     {TURKEY_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </section>
+
+              <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
+                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 leading-none">{t.browseWorld}</h3>
+                <div className="relative">
+                  <select
+                    value={selectedProvince}
+                    onChange={(e) => handleProvinceSelect(e.target.value)}
+                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer"
+                  >
+                    <option value="">{t.selectCity}</option>
+                    {WORLD_CITIES.map(city => <option key={city} value={city}>{city}</option>)}
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
