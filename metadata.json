@@ -1,0 +1,7 @@
+{
+  "name": "AeroGuard Pro - Global Air Quality Monitor",
+  "description": "A high-performance air quality monitoring application providing real-time AQI data, pollutant breakdowns, and AI-powered health recommendations based on your location or searched cities.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
