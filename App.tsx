@@ -181,26 +181,6 @@ const App: React.FC = () => {
                   </svg>
                 </div>
               </form>
-
-              {searchResults.length > 0 && (
-                <div className="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-[70vh] overflow-y-auto overflow-x-hidden animate-in slide-in-from-top-2 duration-200">
-                  {searchResults.map((res, index) => (
-                    <button
-                      key={res.uid}
-                      onClick={() => selectStation(res.uid)}
-                      className={`w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 border-slate-100 transition-colors text-left ${index !== searchResults.length - 1 ? 'border-b' : ''}`}
-                    >
-                      <div className="max-w-[75%]">
-                        <p className="text-sm font-bold text-slate-800 truncate leading-tight">{res.station.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 tracking-tight">{res.time.stime}</p>
-                      </div>
-                      <div className={`flex-shrink-0 min-w-[32px] text-center px-2 py-1 rounded-lg text-[10px] font-black ${getAqiMetadata(parseInt(res.aqi)).color} text-white shadow-sm`}>
-                        {res.aqi}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </header>
