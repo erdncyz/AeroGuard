@@ -168,6 +168,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
+
         {/* Cascade Location Selection */}
         <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 mb-8">
           <div className="flex items-center gap-2 mb-6">
@@ -179,7 +180,7 @@ const App: React.FC = () => {
             <h3 className="text-sm font-black text-slate-900 tracking-tight">{t.browseWorld}</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Country Selection */}
             <div className="relative">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
@@ -189,7 +190,6 @@ const App: React.FC = () => {
                   setSelectedCountry(e.target.value);
                   setSelectedProvince('');
                   setSelectedDistrict('');
-                  if (e.target.value) handleProvinceSelect(e.target.value);
                 }}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
               >
@@ -211,7 +211,6 @@ const App: React.FC = () => {
                 onChange={(e) => {
                   setSelectedProvince(e.target.value);
                   setSelectedDistrict('');
-                  if (e.target.value) handleProvinceSelect(e.target.value);
                 }}
                 disabled={!selectedCountry}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -231,10 +230,7 @@ const App: React.FC = () => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
               <select
                 value={selectedDistrict}
-                onChange={(e) => {
-                  setSelectedDistrict(e.target.value);
-                  if (e.target.value) handleProvinceSelect(e.target.value);
-                }}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
                 disabled={!selectedProvince}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -245,6 +241,25 @@ const App: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
+            </div>
+
+            {/* Search Button */}
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  const searchTerm = selectedDistrict || selectedProvince || selectedCountry;
+                  if (searchTerm) {
+                    handleProvinceSelect(searchTerm);
+                  }
+                }}
+                disabled={!selectedCountry}
+                className="w-full py-4 px-6 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-sm font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest disabled:cursor-not-allowed"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {lang === 'tr' ? 'ARA' : 'SEARCH'}
+              </button>
             </div>
           </div>
         </section>
