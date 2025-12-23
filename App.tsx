@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import * as waqiService from './services/waqiService';
 import { StationData, SearchResult, Language } from './types';
 import { getAqiMetadata } from './constants';
-import { translations, TURKEY_PROVINCES, WORLD_CITIES } from './translations';
+import { translations, TURKEY_PROVINCES, COUNTRIES } from './translations';
 import PollutantCard from './components/PollutantCard';
 import AirMap from './components/AirMap';
 
@@ -15,7 +15,9 @@ const App: React.FC = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [mapMode, setMapMode] = useState<'station' | 'heatmap'>('station');
+  const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [activeWidgetType, setActiveWidgetType] = useState<'classic' | 'wide' | 'detailed'>('classic');
@@ -203,6 +205,87 @@ const App: React.FC = () => {
           </div>
         </header>
 
+        {/* Cascade Location Selection */}
+        <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 mb-8">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-black text-slate-900 tracking-tight">{t.browseWorld}</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Country Selection */}
+            <div className="relative">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                  setSelectedProvince('');
+                  setSelectedDistrict('');
+                  if (e.target.value) handleProvinceSelect(e.target.value);
+                }}
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
+              >
+                <option value="">-</option>
+                {COUNTRIES.map(country => <option key={country} value={country}>{country}</option>)}
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Province Selection */}
+            <div className="relative">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
+              <select
+                value={selectedProvince}
+                onChange={(e) => {
+                  setSelectedProvince(e.target.value);
+                  setSelectedDistrict('');
+                  if (e.target.value) handleProvinceSelect(e.target.value);
+                }}
+                disabled={!selectedCountry}
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">-</option>
+                {selectedCountry === 'Turkey' && TURKEY_PROVINCES.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* District Selection */}
+            <div className="relative">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
+              <select
+                value={selectedDistrict}
+                onChange={(e) => {
+                  setSelectedDistrict(e.target.value);
+                  if (e.target.value) handleProvinceSelect(e.target.value);
+                }}
+                disabled={!selectedProvince}
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">-</option>
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {stationData && (
           <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-10">
             <div className="lg:col-span-8 space-y-6">
@@ -285,44 +368,6 @@ const App: React.FC = () => {
             </div>
 
             <div className="lg:col-span-4 space-y-6">
-              <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
-                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 leading-none">{t.browseTurkey}</h3>
-                <div className="relative">
-                  <select
-                    value={selectedProvince}
-                    onChange={(e) => handleProvinceSelect(e.target.value)}
-                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer"
-                  >
-                    <option value="">{t.selectProvince}</option>
-                    {TURKEY_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </section>
-
-              <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
-                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 leading-none">{t.browseWorld}</h3>
-                <div className="relative">
-                  <select
-                    value={selectedProvince}
-                    onChange={(e) => handleProvinceSelect(e.target.value)}
-                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer"
-                  >
-                    <option value="">{t.selectCity}</option>
-                    {WORLD_CITIES.map(city => <option key={city} value={city}>{city}</option>)}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </section>
-
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-3">
                   <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
