@@ -68,17 +68,22 @@ const App: React.FC = () => {
     }
   };
 
+
   const handleProvinceSelect = async (prov: string) => {
-    setSelectedProvince(prov);
     if (!prov) return;
-    setIsSearching(true);
+    setLoading(true);
     try {
       const results = await waqiService.searchStations(prov);
-      setSearchResults(results);
+      if (results.length > 0) {
+        // Otomatik olarak ilk sonucu seç
+        const data = await waqiService.fetchStationById(results[0].uid);
+        setStationData(data);
+        setMapMode('station');
+      }
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSearching(false);
+      setLoading(false);
     }
   };
 
