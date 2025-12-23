@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
   const [activeWidgetType, setActiveWidgetType] = useState<'classic' | 'wide' | 'detailed'>('classic');
@@ -213,9 +214,29 @@ const App: React.FC = () => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
               <select
                 value={selectedProvince}
-                onChange={(e) => {
-                  setSelectedProvince(e.target.value);
+                onChange={async (e) => {
+                  const province = e.target.value;
+                  setSelectedProvince(province);
                   setSelectedDistrict('');
+                  setAvailableDistricts([]);
+
+                  // İl seçildiğinde ilçeleri yükle
+                  if (province) {
+                    try {
+                      const results = await waqiService.searchStations(province);
+                      // Sonuçlardan benzersiz ilçe isimlerini çıkar
+                      const districts = results
+                        .map(r => {
+                          const parts = r.station.name.split(',');
+                          return parts[0]?.trim();
+                        })
+                        .filter((d, i, arr) => d && arr.indexOf(d) === i)
+                        .sort();
+                      setAvailableDistricts(districts);
+                    } catch (err) {
+                      console.error('İlçeler yüklenemedi:', err);
+                    }
+                  }
                 }}
                 disabled={!selectedCountry}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -236,10 +257,13 @@ const App: React.FC = () => {
               <select
                 value={selectedDistrict}
                 onChange={(e) => setSelectedDistrict(e.target.value)}
-                disabled={!selectedProvince}
+                disabled={!selectedProvince || availableDistricts.length === 0}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">-</option>
+                {availableDistricts.map(district => (
+                  <option key={district} value={district}>{district}</option>
+                ))}
               </select>
               <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
