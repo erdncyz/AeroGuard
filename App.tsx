@@ -102,6 +102,16 @@ const App: React.FC = () => {
 
   useEffect(() => {
     loadLocationData();
+
+    // Loading timeout - 8 saniye sonra yine de UI'ı göster
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Loading timeout - UI gösteriliyor');
+        setLoading(false);
+      }
+    }, 8000);
+
+    return () => clearTimeout(timeout);
   }, [loadLocationData]);
 
   const handleSearch = async (e: React.FormEvent) => {
