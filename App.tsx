@@ -202,7 +202,7 @@ const App: React.FC = () => {
                   const section = document.getElementById('educational-section');
                   section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
-                className="whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
+                className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
               >
                 {t.about}
               </button>
@@ -214,13 +214,13 @@ const App: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowDownloadModal(true)}
-                className="whitespace-nowrap px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
+                className="px-3 sm:px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
               >
                 {t.getApp}
               </button>
               <button
                 onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
-                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-widest flex items-center gap-1.5"
+                className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-widest flex items-center gap-1.5"
               >
                 <span className={lang === 'en' ? 'text-emerald-500' : ''}>EN</span>
                 <span className="text-slate-200 font-normal">|</span>
