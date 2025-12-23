@@ -1,0 +1,43 @@
+{
+    "name": "AeroGuard Pro - Hava Kalitesi",
+    "short_name": "AeroGuard",
+    "description": "Küresel hava kalitesi izleme uygulaması",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#10b981",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "weather",
+        "utilities",
+        "health"
+    ],
+    "shortcuts": [
+        {
+            "name": "Konumumu Kontrol Et",
+            "short_name": "Konum",
+            "description": "Mevcut konumunuzun hava kalitesini görün",
+            "url": "/?action=location",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}
