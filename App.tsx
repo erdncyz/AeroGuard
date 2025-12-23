@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showWidgetModal, setShowWidgetModal] = useState(false);
@@ -192,10 +193,38 @@ const App: React.FC = () => {
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
               <select
                 value={selectedCountry}
-                onChange={(e) => {
-                  setSelectedCountry(e.target.value);
+                onChange={async (e) => {
+                  const country = e.target.value;
+                  setSelectedCountry(country);
                   setSelectedProvince('');
                   setSelectedDistrict('');
+                  setAvailableCities([]);
+                  setAvailableDistricts([]);
+
+                  // Ülke seçildiğinde şehirleri yükle
+                  if (country) {
+                    try {
+                      const results = await waqiService.searchStations(country);
+
+                      if (country === 'Turkey') {
+                        // Türkiye için hazır liste kullan
+                        setAvailableCities(TURKEY_PROVINCES);
+                      } else {
+                        // Diğer ülkeler için API'den şehirleri çıkar
+                        const cities = results
+                          .map(r => {
+                            const parts = r.station.name.split(',');
+                            // İkinci parça genellikle şehir
+                            return parts[1]?.trim() || parts[0]?.trim();
+                          })
+                          .filter((c, i, arr) => c && arr.indexOf(c) === i)
+                          .sort();
+                        setAvailableCities(cities);
+                      }
+                    } catch (err) {
+                      console.error('Şehirler yüklenemedi:', err);
+                    }
+                  }
                 }}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
               >
@@ -238,11 +267,11 @@ const App: React.FC = () => {
                     }
                   }
                 }}
-                disabled={!selectedCountry}
+                disabled={!selectedCountry || availableCities.length === 0}
                 className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">-</option>
-                {selectedCountry === 'Turkey' && TURKEY_PROVINCES.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
               </select>
               <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
