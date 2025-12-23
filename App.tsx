@@ -142,6 +142,15 @@ const App: React.FC = () => {
           <div className="flex flex-col md:flex-row items-stretch sm:items-center gap-4">
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
               <button
+                onClick={() => {
+                  const section = document.getElementById('educational-section');
+                  section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="whitespace-nowrap px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
+              >
+                {t.about}
+              </button>
+              <button
                 onClick={() => setShowWidgetModal(true)}
                 className="whitespace-nowrap px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
               >
@@ -334,7 +343,7 @@ const App: React.FC = () => {
         )}
 
         {/* Educational Section */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10">
+        <section id="educational-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-20">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -503,8 +512,8 @@ const App: React.FC = () => {
                     key={type}
                     onClick={() => setActiveWidgetType(type)}
                     className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${activeWidgetType === type
-                        ? 'bg-white shadow-sm text-slate-900 scale-100'
-                        : 'text-slate-400 hover:text-slate-600 scale-95'
+                      ? 'bg-white shadow-sm text-slate-900 scale-100'
+                      : 'text-slate-400 hover:text-slate-600 scale-95'
                       }`}
                   >
                     {t.widgetTypes[type]}
