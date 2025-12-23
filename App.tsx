@@ -128,8 +128,8 @@ const App: React.FC = () => {
                 <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-widest">{t.subtitle}</p>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
               className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-widest flex items-center gap-1.5"
             >
@@ -140,57 +140,57 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex flex-col md:flex-row items-stretch sm:items-center gap-4">
-             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
-                <button 
-                  onClick={() => setShowWidgetModal(true)}
-                  className="whitespace-nowrap px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
-                >
-                  {t.widget}
-                </button>
-                <button 
-                  onClick={() => setShowDownloadModal(true)}
-                  className="whitespace-nowrap px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
-                >
-                  {t.getApp}
-                </button>
-             </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+              <button
+                onClick={() => setShowWidgetModal(true)}
+                className="whitespace-nowrap px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
+              >
+                {t.widget}
+              </button>
+              <button
+                onClick={() => setShowDownloadModal(true)}
+                className="whitespace-nowrap px-4 py-2.5 bg-slate-900 border border-slate-900 rounded-xl text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
+              >
+                {t.getApp}
+              </button>
+            </div>
 
-             <div className="relative flex-1">
-                <form onSubmit={handleSearch} className="relative z-[60]">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t.searchPlaceholder}
-                    className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-[1.25rem] shadow-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 placeholder:text-slate-400"
-                  />
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                </form>
+            <div className="relative flex-1">
+              <form onSubmit={handleSearch} className="relative z-[60]">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  className="w-full pl-11 pr-4 py-3.5 bg-white border border-slate-200 rounded-[1.25rem] shadow-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all text-sm text-slate-900 placeholder:text-slate-400"
+                />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </form>
 
-                {searchResults.length > 0 && (
-                  <div className="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-[70vh] overflow-y-auto overflow-x-hidden animate-in slide-in-from-top-2 duration-200">
-                    {searchResults.map((res, index) => (
-                      <button
-                        key={res.uid}
-                        onClick={() => selectStation(res.uid)}
-                        className={`w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 border-slate-100 transition-colors text-left ${index !== searchResults.length - 1 ? 'border-b' : ''}`}
-                      >
-                        <div className="max-w-[75%]">
-                          <p className="text-sm font-bold text-slate-800 truncate leading-tight">{res.station.name}</p>
-                          <p className="text-[10px] text-slate-400 font-medium mt-0.5 tracking-tight">{res.time.stime}</p>
-                        </div>
-                        <div className={`flex-shrink-0 min-w-[32px] text-center px-2 py-1 rounded-lg text-[10px] font-black ${getAqiMetadata(parseInt(res.aqi)).color} text-white shadow-sm`}>
-                          {res.aqi}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-             </div>
+              {searchResults.length > 0 && (
+                <div className="absolute z-[100] w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl max-h-[70vh] overflow-y-auto overflow-x-hidden animate-in slide-in-from-top-2 duration-200">
+                  {searchResults.map((res, index) => (
+                    <button
+                      key={res.uid}
+                      onClick={() => selectStation(res.uid)}
+                      className={`w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 border-slate-100 transition-colors text-left ${index !== searchResults.length - 1 ? 'border-b' : ''}`}
+                    >
+                      <div className="max-w-[75%]">
+                        <p className="text-sm font-bold text-slate-800 truncate leading-tight">{res.station.name}</p>
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5 tracking-tight">{res.time.stime}</p>
+                      </div>
+                      <div className={`flex-shrink-0 min-w-[32px] text-center px-2 py-1 rounded-lg text-[10px] font-black ${getAqiMetadata(parseInt(res.aqi)).color} text-white shadow-sm`}>
+                        {res.aqi}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -199,7 +199,7 @@ const App: React.FC = () => {
             <div className="lg:col-span-8 space-y-6">
               <section className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100 relative overflow-hidden">
                 <div className={`absolute -top-10 -right-10 w-64 h-64 opacity-5 rounded-full ${aqiMeta?.color}`}></div>
-                
+
                 <div className="flex flex-col md:flex-row gap-8 sm:gap-12 items-center">
                   <div className="flex flex-col items-center relative z-10">
                     <div className={`w-40 h-40 sm:w-48 sm:h-48 rounded-full border-[12px] border-slate-50 flex flex-col items-center justify-center shadow-xl ${aqiMeta?.color} text-white relative transform hover:scale-105 transition-transform duration-300`}>
@@ -235,7 +235,7 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       onClick={loadLocationData}
                       className="w-full py-4 px-8 bg-slate-900 hover:bg-black text-white text-[10px] font-black rounded-2xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
                     >
@@ -250,24 +250,24 @@ const App: React.FC = () => {
 
               <section className="bg-white rounded-[2.5rem] p-3 sm:p-4 shadow-sm border border-slate-100 overflow-hidden">
                 <div className="flex flex-col sm:flex-row items-center justify-between mb-4 px-3 py-2 gap-3">
-                   <div className="flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                     <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">{t.heatmap}</h3>
-                   </div>
-                   <div className="bg-slate-100 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
-                      <button 
-                        onClick={() => setMapMode('station')}
-                        className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'station' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
-                      >
-                        {t.stationView.toUpperCase()}
-                      </button>
-                      <button 
-                        onClick={() => setMapMode('heatmap')}
-                        className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'heatmap' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
-                      >
-                        {t.heatmap.toUpperCase()}
-                      </button>
-                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">{t.heatmap}</h3>
+                  </div>
+                  <div className="bg-slate-100 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
+                    <button
+                      onClick={() => setMapMode('station')}
+                      className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'station' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                    >
+                      {t.stationView.toUpperCase()}
+                    </button>
+                    <button
+                      onClick={() => setMapMode('heatmap')}
+                      className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'heatmap' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                    >
+                      {t.heatmap.toUpperCase()}
+                    </button>
+                  </div>
                 </div>
                 <div className="h-[450px] sm:h-[550px] w-full">
                   <AirMap mode={mapMode} geo={stationData.city.geo} aqi={stationData.aqi} label={stationData.city.name} translations={t} />
@@ -277,30 +277,30 @@ const App: React.FC = () => {
 
             <div className="lg:col-span-4 space-y-6">
               <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
-                 <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 leading-none">{t.browseTurkey}</h3>
-                 <div className="relative">
-                   <select 
-                     value={selectedProvince}
-                     onChange={(e) => handleProvinceSelect(e.target.value)}
-                     className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer"
-                   >
-                     <option value="">{t.selectProvince}</option>
-                     {TURKEY_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                   </select>
-                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                     </svg>
-                   </div>
-                 </div>
+                <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 leading-none">{t.browseTurkey}</h3>
+                <div className="relative">
+                  <select
+                    value={selectedProvince}
+                    onChange={(e) => handleProvinceSelect(e.target.value)}
+                    className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer"
+                  >
+                    <option value="">{t.selectProvince}</option>
+                    {TURKEY_PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </section>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-3">
-                   <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
-                   <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">{t.live}</span>
+                  <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
+                  <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">{t.live}</span>
                 </div>
-                
+
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 px-1 sm:px-0">
                   <PollutantCard label="PM 2.5" value={stationData.iaqi.pm25?.v} unit="µg/m³" description={t.pm25Desc} />
                   <PollutantCard label="PM 10" value={stationData.iaqi.pm10?.v} unit="µg/m³" description={t.pm10Desc} />
@@ -333,12 +333,130 @@ const App: React.FC = () => {
           </main>
         )}
 
+        {/* Educational Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{t.learnMore}</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4 tracking-tight">{t.whyItMatters}</h2>
+            <p className="text-slate-600 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed font-medium">{t.whyItMattersDesc}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {/* Health Impacts */}
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-[2.5rem] p-8 border border-red-100">
+              <div className="bg-red-500 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tight">{t.healthImpacts}</h3>
+              <p className="text-slate-700 leading-relaxed font-medium">{t.healthImpactsDesc}</p>
+            </div>
+
+            {/* How Measured */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2.5rem] p-8 border border-blue-100">
+              <div className="bg-blue-500 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tight">{t.howMeasured}</h3>
+              <p className="text-slate-700 leading-relaxed font-medium">{t.howMeasuredDesc}</p>
+            </div>
+          </div>
+
+          {/* AQI Scale */}
+          <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-slate-100 mb-12">
+            <h3 className="text-2xl font-black text-slate-900 mb-6 tracking-tight flex items-center gap-3">
+              <span className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </span>
+              {t.aqiExplained}
+            </h3>
+            <p className="text-slate-600 mb-8 leading-relaxed font-medium">{t.aqiExplainedDesc}</p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { range: '0-50', label: t.aqiLevels.good.label, color: 'bg-emerald-500' },
+                { range: '51-100', label: t.aqiLevels.moderate.label, color: 'bg-yellow-500' },
+                { range: '101-150', label: t.aqiLevels.sensitive.label, color: 'bg-orange-500' },
+                { range: '151-200', label: t.aqiLevels.unhealthy.label, color: 'bg-red-500' },
+                { range: '201-300', label: t.aqiLevels.veryUnhealthy.label, color: 'bg-purple-500' },
+                { range: '300+', label: t.aqiLevels.hazardous.label, color: 'bg-rose-900' }
+              ].map((item, idx) => (
+                <div key={idx} className="text-center">
+                  <div className={`${item.color} text-white py-3 px-2 rounded-2xl mb-2 shadow-lg`}>
+                    <div className="text-lg font-black">{item.range}</div>
+                  </div>
+                  <div className="text-[10px] font-black text-slate-600 uppercase tracking-tight">{item.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pollutants */}
+          <div className="mb-12">
+            <h3 className="text-2xl font-black text-slate-900 mb-8 tracking-tight text-center">{t.pollutantsTitle}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { title: t.pm25Title, info: t.pm25Info, icon: '🔬', color: 'from-purple-50 to-pink-50', borderColor: 'border-purple-100' },
+                { title: t.pm10Title, info: t.pm10Info, icon: '💨', color: 'from-blue-50 to-cyan-50', borderColor: 'border-blue-100' },
+                { title: t.o3Title, info: t.o3Info, icon: '☀️', color: 'from-yellow-50 to-orange-50', borderColor: 'border-yellow-100' },
+                { title: t.no2Title, info: t.no2Info, icon: '🚗', color: 'from-red-50 to-rose-50', borderColor: 'border-red-100' }
+              ].map((pollutant, idx) => (
+                <div key={idx} className={`bg-gradient-to-br ${pollutant.color} rounded-[2rem] p-6 border ${pollutant.borderColor}`}>
+                  <div className="text-4xl mb-4">{pollutant.icon}</div>
+                  <h4 className="text-sm font-black text-slate-900 mb-3 tracking-tight">{pollutant.title}</h4>
+                  <p className="text-xs text-slate-700 leading-relaxed font-medium">{pollutant.info}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Protection Tips */}
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2.5rem] p-8 sm:p-10 text-white shadow-xl mb-12">
+            <h3 className="text-2xl font-black mb-6 tracking-tight flex items-center gap-3">
+              <span className="bg-white/20 p-2 rounded-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </span>
+              {t.protectYourself}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[t.protectTip1, t.protectTip2, t.protectTip3, t.protectTip4, t.protectTip5].map((tip, idx) => (
+                <div key={idx} className="flex items-start gap-3 bg-white/10 rounded-2xl p-4 backdrop-blur-sm border border-white/20">
+                  <div className="bg-white/20 rounded-full p-1.5 mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium leading-relaxed">{tip}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Data Source */}
+          <div className="bg-slate-50 rounded-[2rem] p-6 border border-slate-200 text-center">
+            <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t.dataSource}</h4>
+            <p className="text-sm text-slate-600 font-medium leading-relaxed max-w-3xl mx-auto">{t.dataSourceDesc}</p>
+          </div>
+        </section>
+
         <footer className="mt-10 py-8 border-t border-slate-200/60 text-center">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
             {t.developedBy}{' '}
-            <a 
-              href="https://erdincyilmaz.netlify.app/" 
-              target="_blank" 
+            <a
+              href="https://erdincyilmaz.netlify.app/"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-slate-600 hover:text-emerald-500 transition-colors duration-200 underline decoration-slate-300 decoration-2 underline-offset-4"
             >
@@ -378,17 +496,16 @@ const App: React.FC = () => {
               <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
               <h3 className="text-2xl font-black text-slate-800 mb-1 tracking-tight text-center sm:text-left">{t.widgetTitle}</h3>
               <p className="text-[10px] text-slate-400 font-bold mb-6 uppercase tracking-widest text-center sm:text-left">{t.widgetDesc}</p>
-              
+
               <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
                 {(['classic', 'wide', 'detailed'] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setActiveWidgetType(type)}
-                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${
-                      activeWidgetType === type 
-                        ? 'bg-white shadow-sm text-slate-900 scale-100' 
+                    className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${activeWidgetType === type
+                        ? 'bg-white shadow-sm text-slate-900 scale-100'
                         : 'text-slate-400 hover:text-slate-600 scale-95'
-                    }`}
+                      }`}
                   >
                     {t.widgetTypes[type]}
                   </button>
@@ -396,63 +513,63 @@ const App: React.FC = () => {
               </div>
 
               <div className="bg-slate-50 p-8 rounded-[3.5rem] border-4 border-slate-100 shadow-inner flex flex-col items-center justify-center mb-6 min-h-[260px] relative">
-                 {activeWidgetType === 'classic' && (
-                   <div className={`w-40 h-40 rounded-[2.5rem] p-6 flex flex-col justify-between shadow-2xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
-                      <div className="flex justify-between items-center">
-                         <span className="text-[10px] font-black opacity-90 uppercase tracking-[0.1em]">AEROGUARD</span>
-                         <div className="w-2.5 h-2.5 rounded-full bg-white opacity-40 shadow-inner"></div>
-                      </div>
-                      <div className="text-center py-2">
-                         <span className="text-5xl font-black block tracking-tighter leading-[1]">{stationData.aqi}</span>
-                         <span className="text-[10px] font-black opacity-80 uppercase tracking-[0.2em] mt-1 block">AQI</span>
-                      </div>
-                      <div className="bg-white/25 rounded-2xl py-2 px-3 text-center backdrop-blur-md border border-white/10">
-                         <span className="text-[9px] font-black uppercase tracking-[0.2em]">{aqiText?.label}</span>
-                      </div>
-                   </div>
-                 )}
+                {activeWidgetType === 'classic' && (
+                  <div className={`w-40 h-40 rounded-[2.5rem] p-6 flex flex-col justify-between shadow-2xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black opacity-90 uppercase tracking-[0.1em]">AEROGUARD</span>
+                      <div className="w-2.5 h-2.5 rounded-full bg-white opacity-40 shadow-inner"></div>
+                    </div>
+                    <div className="text-center py-2">
+                      <span className="text-5xl font-black block tracking-tighter leading-[1]">{stationData.aqi}</span>
+                      <span className="text-[10px] font-black opacity-80 uppercase tracking-[0.2em] mt-1 block">AQI</span>
+                    </div>
+                    <div className="bg-white/25 rounded-2xl py-2 px-3 text-center backdrop-blur-md border border-white/10">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em]">{aqiText?.label}</span>
+                    </div>
+                  </div>
+                )}
 
-                 {activeWidgetType === 'wide' && (
-                    <div className={`w-full max-w-[280px] h-28 rounded-[1.75rem] p-5 flex items-center justify-between shadow-xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
-                      <div className="flex flex-col justify-center border-r border-white/20 pr-5">
-                        <span className="text-3xl font-black leading-tight tracking-tighter">{stationData.aqi}</span>
-                        <span className="text-[9px] font-black opacity-80 uppercase tracking-widest">AQI</span>
+                {activeWidgetType === 'wide' && (
+                  <div className={`w-full max-w-[280px] h-28 rounded-[1.75rem] p-5 flex items-center justify-between shadow-xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
+                    <div className="flex flex-col justify-center border-r border-white/20 pr-5">
+                      <span className="text-3xl font-black leading-tight tracking-tighter">{stationData.aqi}</span>
+                      <span className="text-[9px] font-black opacity-80 uppercase tracking-widest">AQI</span>
+                    </div>
+                    <div className="flex-1 px-5 overflow-hidden">
+                      <p className="text-xs font-black truncate tracking-tight">{stationData.city.name}</p>
+                      <p className="text-[9px] font-black opacity-80 uppercase tracking-[0.15em] mt-0.5">{aqiText?.label}</p>
+                    </div>
+                    <div className="bg-white/20 rounded-2xl p-2.5 text-center backdrop-blur-sm border border-white/10">
+                      <span className="text-xl font-black leading-none">{stationData.iaqi.t?.v ?? '--'}°</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeWidgetType === 'detailed' && (
+                  <div className={`w-48 aspect-square rounded-[2.25rem] p-5 flex flex-col shadow-2xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex flex-col">
+                        <span className="text-2xl font-black leading-none tracking-tighter">{stationData.aqi}</span>
+                        <span className="text-[8px] font-black uppercase opacity-90 tracking-widest">{aqiText?.label}</span>
                       </div>
-                      <div className="flex-1 px-5 overflow-hidden">
-                        <p className="text-xs font-black truncate tracking-tight">{stationData.city.name}</p>
-                        <p className="text-[9px] font-black opacity-80 uppercase tracking-[0.15em] mt-0.5">{aqiText?.label}</p>
+                      <div className="bg-white/20 rounded-xl px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest border border-white/10">{stationData.dominentpol}</div>
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
+                        <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">PM2.5</span>
+                        <span className="text-xs font-black">{stationData.iaqi.pm25?.v ?? '--'}</span>
                       </div>
-                      <div className="bg-white/20 rounded-2xl p-2.5 text-center backdrop-blur-sm border border-white/10">
-                        <span className="text-xl font-black leading-none">{stationData.iaqi.t?.v ?? '--'}°</span>
+                      <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
+                        <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">PM10</span>
+                        <span className="text-xs font-black">{stationData.iaqi.pm10?.v ?? '--'}</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
+                        <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">TEMP</span>
+                        <span className="text-xs font-black">{stationData.iaqi.t?.v ?? '--'}°C</span>
                       </div>
                     </div>
-                 )}
-
-                 {activeWidgetType === 'detailed' && (
-                    <div className={`w-48 aspect-square rounded-[2.25rem] p-5 flex flex-col shadow-2xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
-                      <div className="flex justify-between items-start mb-4">
-                         <div className="flex flex-col">
-                            <span className="text-2xl font-black leading-none tracking-tighter">{stationData.aqi}</span>
-                            <span className="text-[8px] font-black uppercase opacity-90 tracking-widest">{aqiText?.label}</span>
-                         </div>
-                         <div className="bg-white/20 rounded-xl px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest border border-white/10">{stationData.dominentpol}</div>
-                      </div>
-                      <div className="flex-1 flex flex-col gap-2">
-                        <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
-                          <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">PM2.5</span>
-                          <span className="text-xs font-black">{stationData.iaqi.pm25?.v ?? '--'}</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
-                          <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">PM10</span>
-                          <span className="text-xs font-black">{stationData.iaqi.pm10?.v ?? '--'}</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
-                          <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">TEMP</span>
-                          <span className="text-xs font-black">{stationData.iaqi.t?.v ?? '--'}°C</span>
-                        </div>
-                      </div>
-                    </div>
-                 )}
+                  </div>
+                )}
               </div>
 
               <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-100">

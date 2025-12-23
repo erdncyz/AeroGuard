@@ -56,7 +56,34 @@ export const translations = {
       good: "0-50 Good",
       moderate: "51-100 Moderate",
       bad: "101+ Poor"
-    }
+    },
+    // Educational Content
+    learnMore: "Learn More",
+    whyItMatters: "Why Air Quality Matters",
+    whyItMattersDesc: "Air pollution is one of the world's leading health risks, affecting billions of people globally. Understanding air quality helps you make informed decisions to protect your health and the health of your loved ones.",
+    healthImpacts: "Health Impacts",
+    healthImpactsDesc: "Poor air quality can cause respiratory diseases, heart problems, strokes, and even premature death. Children, elderly, and people with existing health conditions are particularly vulnerable.",
+    howMeasured: "How Air Quality is Measured",
+    howMeasuredDesc: "The Air Quality Index (AQI) is a standardized indicator that tells you how clean or polluted your air is, and what associated health effects might be a concern.",
+    aqiExplained: "Understanding AQI",
+    aqiExplainedDesc: "AQI values range from 0 to 500. The higher the AQI value, the greater the level of air pollution and the greater the health concern.",
+    pollutantsTitle: "Key Pollutants",
+    pm25Title: "PM2.5 - Fine Particles",
+    pm25Info: "Particles smaller than 2.5 micrometers can penetrate deep into lungs and bloodstream. Major sources: vehicle emissions, industrial processes, and wildfires.",
+    pm10Title: "PM10 - Coarse Particles",
+    pm10Info: "Particles smaller than 10 micrometers can irritate airways. Sources include dust, pollen, and mold spores.",
+    o3Title: "Ozone (O₃)",
+    o3Info: "Ground-level ozone forms when pollutants react in sunlight. Can trigger asthma and reduce lung function. Highest levels typically occur in summer.",
+    no2Title: "Nitrogen Dioxide (NO₂)",
+    no2Info: "Primarily from vehicle emissions and power plants. Can aggravate respiratory diseases and reduce immunity to lung infections.",
+    protectYourself: "How to Protect Yourself",
+    protectTip1: "Check AQI daily and plan outdoor activities accordingly",
+    protectTip2: "Use air purifiers indoors when AQI is high",
+    protectTip3: "Wear N95 masks during poor air quality days",
+    protectTip4: "Keep windows closed when outdoor air quality is poor",
+    protectTip5: "Reduce outdoor exercise when AQI exceeds 100",
+    dataSource: "Data Source",
+    dataSourceDesc: "Our data comes from the World Air Quality Index Project (WAQI), which aggregates air quality data from over 130 countries and 30,000+ monitoring stations worldwide."
   },
   tr: {
     title: "AeroGuard",
@@ -114,7 +141,34 @@ export const translations = {
       good: "0-50 İyi",
       moderate: "51-100 Orta",
       bad: "101+ Kötü"
-    }
+    },
+    // Eğitici İçerik
+    learnMore: "Daha Fazla Bilgi",
+    whyItMatters: "Hava Kalitesi Neden Önemli",
+    whyItMattersDesc: "Hava kirliliği, dünya çapında milyarlarca insanı etkileyen önde gelen sağlık risklerinden biridir. Hava kalitesini anlamak, kendinizin ve sevdiklerinizin sağlığını korumak için bilinçli kararlar almanıza yardımcı olur.",
+    healthImpacts: "Sağlık Etkileri",
+    healthImpactsDesc: "Kötü hava kalitesi solunum hastalıklarına, kalp sorunlarına, felçlere ve hatta erken ölümlere neden olabilir. Çocuklar, yaşlılar ve mevcut sağlık sorunları olan kişiler özellikle savunmasızdır.",
+    howMeasured: "Hava Kalitesi Nasıl Ölçülür",
+    howMeasuredDesc: "Hava Kalitesi İndeksi (AQI), havanızın ne kadar temiz veya kirli olduğunu ve hangi sağlık etkilerinin endişe kaynağı olabileceğini gösteren standart bir göstergedir.",
+    aqiExplained: "AQI'yi Anlamak",
+    aqiExplainedDesc: "AQI değerleri 0 ile 500 arasında değişir. AQI değeri ne kadar yüksekse, hava kirliliği seviyesi ve sağlık endişesi o kadar büyüktür.",
+    pollutantsTitle: "Temel Kirleticiler",
+    pm25Title: "PM2.5 - İnce Partiküller",
+    pm25Info: "2.5 mikrometre'den küçük partiküller akciğerlere ve kan dolaşımına nüfuz edebilir. Başlıca kaynaklar: araç emisyonları, endüstriyel süreçler ve orman yangınları.",
+    pm10Title: "PM10 - Kaba Partiküller",
+    pm10Info: "10 mikrometre'den küçük partiküller hava yollarını tahriş edebilir. Kaynaklar arasında toz, polen ve küf sporları bulunur.",
+    o3Title: "Ozon (O₃)",
+    o3Info: "Yer seviyesi ozonu, kirleticiler güneş ışığında reaksiyona girdiğinde oluşur. Astımı tetikleyebilir ve akciğer fonksiyonunu azaltabilir. En yüksek seviyeler genellikle yaz aylarında görülür.",
+    no2Title: "Azot Dioksit (NO₂)",
+    no2Info: "Esas olarak araç emisyonları ve enerji santrallerinden kaynaklanır. Solunum hastalıklarını kötüleştirebilir ve akciğer enfeksiyonlarına karşı bağışıklığı azaltabilir.",
+    protectYourself: "Kendinizi Nasıl Korursunuz",
+    protectTip1: "AQI'yi her gün kontrol edin ve açık hava aktivitelerini buna göre planlayın",
+    protectTip2: "AQI yüksek olduğunda iç mekanlarda hava temizleyicileri kullanın",
+    protectTip3: "Kötü hava kalitesi günlerinde N95 maske takın",
+    protectTip4: "Dış hava kalitesi kötü olduğunda pencereleri kapalı tutun",
+    protectTip5: "AQI 100'ü aştığında açık hava egzersizlerini azaltın",
+    dataSource: "Veri Kaynağı",
+    dataSourceDesc: "Verilerimiz, 130'dan fazla ülke ve dünya çapında 30.000'den fazla izleme istasyonundan hava kalitesi verilerini toplayan Dünya Hava Kalitesi İndeksi Projesi'nden (WAQI) gelmektedir."
   }
 };
 
