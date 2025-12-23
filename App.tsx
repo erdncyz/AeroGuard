@@ -277,11 +277,21 @@ const App: React.FC = () => {
                         setAvailableCities(cities);
                       }
 
+
                       // En temiz ve en kirli bölgeleri bul
                       if (results.length > 0) {
-                        const sorted = [...results].sort((a, b) => parseInt(a.aqi) - parseInt(b.aqi));
-                        setCleanestRegion(sorted[0]); // En düşük AQI = En temiz
-                        setMostPollutedRegion(sorted[sorted.length - 1]); // En yüksek AQI = En kirli
+                        // Geçerli AQI değeri olanları filtrele
+                        const validResults = results.filter(r => {
+                          const aqiNum = parseInt(r.aqi);
+                          return !isNaN(aqiNum) && aqiNum > 0;
+                        });
+
+                        if (validResults.length > 0) {
+                          // Sayısal olarak sırala
+                          const sorted = [...validResults].sort((a, b) => parseInt(a.aqi) - parseInt(b.aqi));
+                          setCleanestRegion(sorted[0]); // En düşük AQI = En temiz
+                          setMostPollutedRegion(sorted[sorted.length - 1]); // En yüksek AQI = En kirli
+                        }
                       }
                     } catch (err) {
                       console.error('Şehirler yüklenemedi:', err);
