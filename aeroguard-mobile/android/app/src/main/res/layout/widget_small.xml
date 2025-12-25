@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="@drawable/widget_background">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="AEROGUARD"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:alpha="0.9"/>
+        
+        <View
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:background="@drawable/live_indicator"/>
+    </LinearLayout>
+
+    <!-- AQI Circle -->
+    <LinearLayout
+        android:id="@+id/aqi_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
+        
+        <TextView
+            android:id="@+id/aqi_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="42"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"/>
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AQI"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:alpha="0.8"
+            android:letterSpacing="0.2"/>
+    </LinearLayout>
+
+    <!-- Status Badge -->
+    <TextView
+        android:id="@+id/status_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:text="İYİ"
+        android:textSize="9sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:background="@drawable/status_badge_background"
+        android:letterSpacing="0.2"/>
+
+</RelativeLayout>
