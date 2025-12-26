@@ -178,55 +178,80 @@ const App: React.FC = () => {
   const aqiText = aqiMeta ? t.aqiLevels[aqiMeta.key] : null;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20 sm:pb-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-10">
-        <header className="flex flex-col gap-6 mb-8 sm:mb-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-emerald-500 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-200">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 20 20" fill="currentColor">
+    <div className="min-h-screen bg-[#f8fafc] pb-safe">
+      <div className="max-w-7xl mx-auto px-safe">
+        <header className="mobile-header flex flex-col gap-4 sm:gap-6 mb-6 sm:mb-10 pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+              <div className="bg-emerald-500 text-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-200 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 sm:h-6 sm:w-6" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
                 </svg>
               </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none truncate">
                   {t.title} <span className="text-emerald-500">Pro</span>
                 </h1>
-                <p className="text-slate-400 text-[10px] font-bold mt-1 uppercase tracking-widest">{t.subtitle}</p>
+                <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold mt-0.5 sm:mt-1 uppercase tracking-wider sm:tracking-widest truncate">{t.subtitle}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button
                 onClick={() => {
                   const section = document.getElementById('educational-section');
                   section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
-                className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
+                className="hidden sm:inline-flex px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
               >
                 {t.about}
               </button>
               <button
                 onClick={() => setShowWidgetModal(true)}
-                className="whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
+                className="hidden sm:inline-flex whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
               >
                 {t.widget}
               </button>
               <button
                 onClick={() => setShowDownloadModal(true)}
-                className="px-3 sm:px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
+                className="hidden sm:inline-flex px-3 sm:px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
               >
                 {t.getApp}
               </button>
               <button
                 onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
-                className="px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-widest flex items-center gap-1.5"
+                className="px-2.5 sm:px-3 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-200 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-wider sm:tracking-widest flex items-center gap-1 sm:gap-1.5 flex-shrink-0"
               >
                 <span className={lang === 'en' ? 'text-emerald-500' : ''}>EN</span>
                 <span className="text-slate-200 font-normal">|</span>
                 <span className={lang === 'tr' ? 'text-emerald-500' : ''}>TR</span>
               </button>
             </div>
+          </div>
+
+          {/* Mobile-only bottom buttons */}
+          <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+            <button
+              onClick={() => {
+                const section = document.getElementById('educational-section');
+                section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="flex-shrink-0 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black shadow-sm text-slate-600 active:bg-slate-50 transition-all uppercase tracking-widest"
+            >
+              {t.about}
+            </button>
+            <button
+              onClick={() => setShowWidgetModal(true)}
+              className="flex-shrink-0 whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black shadow-sm text-slate-600 active:bg-slate-50 transition-all uppercase tracking-widest"
+            >
+              {t.widget}
+            </button>
+            <button
+              onClick={() => setShowDownloadModal(true)}
+              className="flex-shrink-0 px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[9px] font-black shadow-sm text-white active:bg-black transition-all uppercase tracking-widest"
+            >
+              {t.getApp}
+            </button>
           </div>
         </header>
 
