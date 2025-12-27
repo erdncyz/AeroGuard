@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Privacy Policy for AeroGuard - Global Air Quality Monitor">
+    <title>Privacy Policy - AeroGuard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #4F46E5;
+            --secondary-color: #06B6D4;
+            --text-primary: #1F2937;
+            --text-secondary: #6B7280;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --border-color: #E5E7EB;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.7;
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .header {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .content-card {
+            background: var(--bg-primary);
+            border-radius: 16px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .language-toggle {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .language-toggle button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            margin: 0 0.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+        }
+
+        .language-toggle button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
+        }
+
+        .language-toggle button.active {
+            background: var(--secondary-color);
+        }
+
+        .lang-content {
+            display: none;
+        }
+
+        .lang-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        h3 {
+            color: var(--text-primary);
+            font-size: 1.3rem;
+            margin: 1.5rem 0 0.75rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 1rem 0;
+            color: var(--text-secondary);
+        }
+
+        ul {
+            margin: 1rem 0 1rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin: 0.5rem 0;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .highlight-box strong {
+            color: var(--primary-color);
+        }
+
+        .contact-section {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .contact-section a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .contact-section a:hover {
+            color: var(--secondary-color);
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .last-updated {
+            background: var(--secondary-color);
+            color: white;
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .content-card {
+                padding: 1.5rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🌍 AeroGuard Privacy Policy</h1>
+        <p>Your privacy is our priority</p>
+    </div>
+
+    <div class="container">
+        <div class="language-toggle">
+            <button onclick="switchLanguage('en')" id="btn-en" class="active">English</button>
+            <button onclick="switchLanguage('tr')" id="btn-tr">Türkçe</button>
+        </div>
+
+        <div class="content-card">
+            <!-- English Version -->
+            <div id="lang-en" class="lang-content active">
+                <div class="last-updated">Last Updated: December 27, 2025</div>
+
+                <h2>Introduction</h2>
+                <p>AeroGuard ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy
+                    explains how we collect, use, and safeguard your information when you use our mobile application.
+                </p>
+
+                <h2>Information We Collect</h2>
+
+                <h3>📍 Location Data</h3>
+                <ul>
+                    <li><strong>Purpose:</strong> To provide you with accurate air quality information for your current
+                        location</li>
+                    <li><strong>Type:</strong> Approximate location (city-level)</li>
+                    <li><strong>Usage:</strong> Location data is used only to fetch relevant air quality data and is not
+                        stored on our servers</li>
+                    <li><strong>Control:</strong> You can disable location access in your device settings at any time
+                    </li>
+                </ul>
+
+                <h3>📱 Automatically Collected Information</h3>
+                <ul>
+                    <li><strong>Device Information:</strong> Device type, operating system version</li>
+                    <li><strong>Usage Data:</strong> App features used, crash reports for improving app stability</li>
+                    <li><strong>Purpose:</strong> To improve app performance and user experience</li>
+                </ul>
+
+                <h2>Information We Do NOT Collect</h2>
+                <div class="highlight-box">
+                    <ul>
+                        <li>❌ We do <strong>NOT</strong> collect personal identification information (name, email, phone
+                            number)</li>
+                        <li>❌ We do <strong>NOT</strong> track your precise GPS location</li>
+                        <li>❌ We do <strong>NOT</strong> sell your data to third parties</li>
+                        <li>❌ We do <strong>NOT</strong> use your data for advertising purposes</li>
+                    </ul>
+                </div>
+
+                <h2>Third-Party Services</h2>
+                <p>AeroGuard uses the following third-party services to provide functionality:</p>
+
+                <h3>OpenWeatherMap API</h3>
+                <ul>
+                    <li><strong>Purpose:</strong> To fetch air quality and weather data</li>
+                    <li><strong>Data Shared:</strong> Your approximate location (latitude/longitude)</li>
+                    <li><strong>Privacy Policy:</strong> <a href="https://openweathermap.org/privacy-policy"
+                            target="_blank">OpenWeatherMap Privacy Policy</a></li>
+                </ul>
+
+                <h2>Data Storage and Security</h2>
+                <ul>
+                    <li>Location data is processed in real-time and not permanently stored</li>
+                    <li>Favorite locations are stored locally on your device</li>
+                    <li>We use industry-standard security measures to protect data transmission</li>
+                    <li>No user accounts or cloud storage of personal data</li>
+                </ul>
+
+                <h2>Your Rights</h2>
+                <p>You have the right to:</p>
+                <ul>
+                    <li>✓ Access location services settings and disable them at any time</li>
+                    <li>✓ Delete the app and all locally stored data</li>
+                    <li>✓ Contact us with privacy concerns</li>
+                </ul>
+
+                <h2>Children's Privacy</h2>
+                <p>AeroGuard does not knowingly collect information from children under 13. The app is designed for
+                    general audiences and does not require age verification.</p>
+
+                <h2>Changes to This Privacy Policy</h2>
+                <p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating
+                    the "Last Updated" date and posting the new Privacy Policy in the app and on our website.</p>
+
+                <h2>Data Retention</h2>
+                <ul>
+                    <li><strong>Location data:</strong> Not stored (processed in real-time only)</li>
+                    <li><strong>Favorite locations:</strong> Stored locally until you delete them or uninstall the app
+                    </li>
+                    <li><strong>Analytics data:</strong> Retained for up to 14 months for app improvement purposes</li>
+                </ul>
+
+                <div class="contact-section">
+                    <h2>Contact Us</h2>
+                    <p>If you have questions or concerns about this Privacy Policy, please contact us:</p>
+                    <p>
+                        <strong>Email:</strong> <a href="mailto:support@aeroguard.app">support@aeroguard.app</a><br>
+                        <strong>GitHub:</strong> <a href="https://github.com/erdncyz/aeroguard-pro"
+                            target="_blank">github.com/erdncyz/aeroguard-pro</a>
+                    </p>
+                </div>
+
+                <div class="highlight-box">
+                    <p><strong>Consent:</strong> By using AeroGuard, you consent to this Privacy Policy and agree to its
+                        terms.</p>
+                </div>
+            </div>
+
+            <!-- Turkish Version -->
+            <div id="lang-tr" class="lang-content">
+                <div class="last-updated">Son Güncelleme: 27 Aralık 2025</div>
+
+                <h2>Giriş</h2>
+                <p>AeroGuard olarak gizliliğinizi korumayı taahhüt ediyoruz. Bu Gizlilik Politikası, mobil uygulamamızı
+                    kullandığınızda bilgilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.</p>
+
+                <h2>Topladığımız Bilgiler</h2>
+
+                <h3>📍 Konum Verileri</h3>
+                <ul>
+                    <li><strong>Amaç:</strong> Bulunduğunuz konum için doğru hava kalitesi bilgisi sağlamak</li>
+                    <li><strong>Tür:</strong> Yaklaşık konum (şehir düzeyinde)</li>
+                    <li><strong>Kullanım:</strong> Konum verisi sadece ilgili hava kalitesi verilerini almak için
+                        kullanılır ve sunucularımızda saklanmaz</li>
+                    <li><strong>Kontrol:</strong> Cihaz ayarlarınızdan istediğiniz zaman konum erişimini devre dışı
+                        bırakabilirsiniz</li>
+                </ul>
+
+                <h3>📱 Otomatik Toplanan Bilgiler</h3>
+                <ul>
+                    <li><strong>Cihaz Bilgileri:</strong> Cihaz türü, işletim sistemi sürümü</li>
+                    <li><strong>Kullanım Verileri:</strong> Kullanılan uygulama özellikleri, uygulama kararlılığını
+                        iyileştirmek için çökme raporları</li>
+                    <li><strong>Amaç:</strong> Uygulama performansını ve kullanıcı deneyimini iyileştirmek</li>
+                </ul>
+
+                <h2>TOPLAMADĞIMIZ Bilgiler</h2>
+                <div class="highlight-box">
+                    <ul>
+                        <li>❌ Kişisel kimlik bilgilerini (isim, e-posta, telefon numarası) <strong>TOPLAMIYORUZ</strong>
+                        </li>
+                        <li>❌ Kesin GPS konumunuzu <strong>TAKİP ETMİYORUZ</strong></li>
+                        <li>❌ Verilerinizi üçüncü taraflara <strong>SATMIYORUZ</strong></li>
+                        <li>❌ Verilerinizi reklam amaçlı <strong>KULLANMIYORUZ</strong></li>
+                    </ul>
+                </div>
+
+                <h2>Üçüncü Taraf Hizmetler</h2>
+                <p>AeroGuard, işlevsellik sağlamak için aşağıdaki üçüncü taraf hizmetleri kullanır:</p>
+
+                <h3>OpenWeatherMap API</h3>
+                <ul>
+                    <li><strong>Amaç:</strong> Hava kalitesi ve hava durumu verilerini almak</li>
+                    <li><strong>Paylaşılan Veri:</strong> Yaklaşık konumunuz (enlem/boylam)</li>
+                    <li><strong>Gizlilik Politikası:</strong> <a href="https://openweathermap.org/privacy-policy"
+                            target="_blank">OpenWeatherMap Gizlilik Politikası</a></li>
+                </ul>
+
+                <h2>Veri Depolama ve Güvenlik</h2>
+                <ul>
+                    <li>Konum verisi gerçek zamanlı olarak işlenir ve kalıcı olarak saklanmaz</li>
+                    <li>Favori konumlar cihazınızda yerel olarak saklanır</li>
+                    <li>Veri iletimini korumak için endüstri standardı güvenlik önlemleri kullanıyoruz</li>
+                    <li>Kullanıcı hesabı veya kişisel verilerin bulut depolaması yok</li>
+                </ul>
+
+                <h2>Haklarınız</h2>
+                <p>Şu haklara sahipsiniz:</p>
+                <ul>
+                    <li>✓ Konum hizmetleri ayarlarına erişim ve istediğiniz zaman devre dışı bırakma</li>
+                    <li>✓ Uygulamayı ve yerel olarak saklanan tüm verileri silme</li>
+                    <li>✓ Gizlilik endişeleriniz için bizimle iletişime geçme</li>
+                </ul>
+
+                <h2>Çocukların Gizliliği</h2>
+                <p>AeroGuard, 13 yaşın altındaki çocuklardan bilerek bilgi toplamaz. Uygulama genel kitle için
+                    tasarlanmıştır ve yaş doğrulaması gerektirmez.</p>
+
+                <h2>Bu Gizlilik Politikasındaki Değişiklikler</h2>
+                <p>Bu Gizlilik Politikasını zaman zaman güncelleyebiliriz. Değişiklikler "Son Güncelleme" tarihini
+                    güncelleyerek ve yeni Gizlilik Politikasını uygulama ve web sitemizde yayınlayarak size
+                    bildirilecektir.</p>
+
+                <h2>Veri Saklama</h2>
+                <ul>
+                    <li><strong>Konum verisi:</strong> Saklanmaz (sadece gerçek zamanlı işlenir)</li>
+                    <li><strong>Favori konumlar:</strong> Siz silene veya uygulamayı kaldırana kadar yerel olarak
+                        saklanır</li>
+                    <li><strong>Analitik verileri:</strong> Uygulama iyileştirme amaçları için 14 aya kadar saklanır
+                    </li>
+                </ul>
+
+                <div class="contact-section">
+                    <h2>İletişim</h2>
+                    <p>Bu Gizlilik Politikası hakkında sorularınız varsa, lütfen bizimle iletişime geçin:</p>
+                    <p>
+                        <strong>E-posta:</strong> <a href="mailto:support@aeroguard.app">support@aeroguard.app</a><br>
+                        <strong>GitHub:</strong> <a href="https://github.com/erdncyz/aeroguard-pro"
+                            target="_blank">github.com/erdncyz/aeroguard-pro</a>
+                    </p>
+                </div>
+
+                <div class="highlight-box">
+                    <p><strong>Onay:</strong> AeroGuard'ı kullanarak, bu Gizlilik Politikasını kabul etmiş olursunuz.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2025 AeroGuard. All rights reserved.</p>
+        <p>Made with ❤️ for clean air</p>
+    </div>
+
+    <script>
+        function switchLanguage(lang) {
+            // Hide all language contents
+            document.querySelectorAll('.lang-content').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.language-toggle button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected language
+            document.getElementById('lang-' + lang).classList.add('active');
+            document.getElementById('btn-' + lang).classList.add('active');
+        }
+    </script>
+</body>
+
+</html>
