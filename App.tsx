@@ -218,171 +218,7 @@ const App: React.FC = () => {
         </header>
 
 
-        {/* Cascade Location Selection */}
-        <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 mb-8">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-sm font-black text-slate-900 tracking-tight">{t.browseWorld}</h3>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Country Selection */}
-            <div className="relative">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
-              <select
-                value={selectedCountry}
-                onChange={async (e) => {
-                  const country = e.target.value;
-                  setSelectedCountry(country);
-                  setSelectedProvince('');
-                  setSelectedDistrict('');
-                  setAvailableCities([]);
-                  setAvailableDistricts([]);
-
-                  // Ülke seçildiğinde şehirleri yükle
-                  if (country) {
-                    try {
-                      const results = await waqiService.searchStations(country);
-
-                      if (country === 'Turkey') {
-                        // Türkiye için hazır liste kullan
-                        setAvailableCities(TURKEY_PROVINCES);
-                      } else {
-                        // Diğer ülkeler için API'den şehirleri çıkar
-                        const cities = results
-                          .map(r => {
-                            const parts = r.station.name.split(',');
-                            // İkinci parça genellikle şehir
-                            return parts[1]?.trim() || parts[0]?.trim();
-                          })
-                          .filter((c, i, arr) => c && arr.indexOf(c) === i)
-                          .sort();
-                        setAvailableCities(cities);
-                      }
-
-
-                      // En temiz ve en kirli bölgeleri bul
-                      if (results.length > 0) {
-                        // Geçerli AQI değeri olanları filtrele
-                        const validResults = results.filter(r => {
-                          const aqiNum = parseInt(r.aqi);
-                          return !isNaN(aqiNum) && aqiNum > 0;
-                        });
-
-                        if (validResults.length > 0) {
-                          // Sayısal olarak sırala
-                          const sorted = [...validResults].sort((a, b) => parseInt(a.aqi) - parseInt(b.aqi));
-                          setCleanestRegion(sorted[0]); // En düşük AQI = En temiz
-                          setMostPollutedRegion(sorted[sorted.length - 1]); // En yüksek AQI = En kirli
-                        }
-                      }
-                    } catch (err) {
-                      console.error('Şehirler yüklenemedi:', err);
-                    }
-                  } else {
-                    setCleanestRegion(null);
-                    setMostPollutedRegion(null);
-                  }
-                }}
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
-              >
-                <option value="">-</option>
-                {COUNTRIES.map(country => <option key={country} value={country}>{country}</option>)}
-              </select>
-              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Province Selection */}
-            <div className="relative">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
-              <select
-                value={selectedProvince}
-                onChange={async (e) => {
-                  const province = e.target.value;
-                  setSelectedProvince(province);
-                  setSelectedDistrict('');
-                  setAvailableDistricts([]);
-
-                  // İl seçildiğinde ilçeleri yükle
-                  if (province) {
-                    try {
-                      const results = await waqiService.searchStations(province);
-                      // Sonuçlardan benzersiz ilçe isimlerini çıkar
-                      const districts = results
-                        .map(r => {
-                          const parts = r.station.name.split(',');
-                          return parts[0]?.trim();
-                        })
-                        .filter((d, i, arr) => d && arr.indexOf(d) === i)
-                        .sort();
-                      setAvailableDistricts(districts);
-                    } catch (err) {
-                      console.error('İlçeler yüklenemedi:', err);
-                    }
-                  }
-                }}
-                disabled={!selectedCountry || availableCities.length === 0}
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">-</option>
-                {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
-              </select>
-              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* District Selection */}
-            <div className="relative">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
-              <select
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                disabled={!selectedProvince || availableDistricts.length === 0}
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">-</option>
-                {availableDistricts.map(district => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Search Button */}
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  const searchTerm = selectedDistrict || selectedProvince || selectedCountry;
-                  if (searchTerm) {
-                    handleProvinceSelect(searchTerm);
-                  }
-                }}
-                disabled={!selectedCountry}
-                className="w-full py-4 px-6 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-sm font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest disabled:cursor-not-allowed"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                {lang === 'tr' ? 'ARA' : 'SEARCH'}
-              </button>
-            </div>
-          </div>
-        </section>
 
         {/* Cleanest & Most Polluted Regions */}
         {(cleanestRegion || mostPollutedRegion) && (
@@ -562,6 +398,182 @@ const App: React.FC = () => {
             </div>
           </main>
         )}
+
+        {/* Cascade Location Selection - Moved Down */}
+        <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 mb-8 mt-8">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-sm font-black text-slate-900 tracking-tight">{t.browseWorld}</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Country Selection */}
+            <div className="relative">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
+              <select
+                value={selectedCountry}
+                onChange={async (e) => {
+                  const country = e.target.value;
+                  setSelectedCountry(country);
+                  setSelectedProvince('');
+                  setSelectedDistrict('');
+                  setAvailableCities([]);
+                  setAvailableDistricts([]);
+
+                  // Ülke seçildiğinde şehirleri yükle
+                  if (country) {
+                    try {
+                      const results = await waqiService.searchStations(country);
+
+                      if (country === 'Turkey') {
+                        // Türkiye için hazır liste kullan
+                        setAvailableCities(TURKEY_PROVINCES);
+                      } else {
+                        // Diğer ülkeler için API'den şehirleri çıkar
+                        const cities = results
+                          .map(r => {
+                            const parts = r.station.name.split(',');
+                            // İkinci parça genellikle şehir
+                            return parts[1]?.trim() || parts[0]?.trim();
+                          })
+                          .filter((c, i, arr) => c && arr.indexOf(c) === i)
+                          .sort();
+                        setAvailableCities(cities);
+                      }
+
+
+                      // En temiz ve en kirli bölgeleri bul
+                      if (results.length > 0) {
+                        // Geçerli AQI değeri olanları filtrele
+                        const validResults = results.filter(r => {
+                          const aqiNum = parseInt(r.aqi);
+                          return !isNaN(aqiNum) && aqiNum > 0;
+                        });
+
+                        if (validResults.length > 0) {
+                          // Sayısal olarak sırala
+                          const sorted = [...validResults].sort((a, b) => parseInt(a.aqi) - parseInt(b.aqi));
+                          setCleanestRegion(sorted[0]); // En düşük AQI = En temiz
+                          setMostPollutedRegion(sorted[sorted.length - 1]); // En yüksek AQI = En kirli
+                        }
+                      }
+                    } catch (err) {
+                      console.error('Şehirler yüklenemedi:', err);
+                    }
+                  } else {
+                    setCleanestRegion(null);
+                    setMostPollutedRegion(null);
+                  }
+                }}
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
+              >
+                <option value="">-</option>
+                {COUNTRIES.map(country => <option key={country} value={country}>{country}</option>)}
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Province Selection */}
+            <div className="relative">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
+              <select
+                value={selectedProvince}
+                onChange={async (e) => {
+                  const province = e.target.value;
+                  setSelectedProvince(province);
+                  setSelectedDistrict('');
+                  setAvailableDistricts([]);
+
+                  // İl seçildiğinde ilçeleri yükle
+                  if (province) {
+                    try {
+                      const results = await waqiService.searchStations(province);
+                      // Sonuçlardan benzersiz ilçe isimlerini çıkar
+                      const districts = results
+                        .map(r => {
+                          const parts = r.station.name.split(',');
+                          return parts[0]?.trim();
+                        })
+                        .filter((d, i, arr) => d && arr.indexOf(d) === i)
+                        .sort();
+                      setAvailableDistricts(districts);
+                    } catch (err) {
+                      console.error('İlçeler yüklenemedi:', err);
+                    }
+                  }
+                }}
+                disabled={!selectedCountry || availableCities.length === 0}
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">-</option>
+                {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* District Selection */}
+            <div className="relative">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
+              <select
+                value={selectedDistrict}
+                onChange={(e) => setSelectedDistrict(e.target.value)}
+                disabled={!selectedProvince || availableDistricts.length === 0}
+                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">-</option>
+                {availableDistricts.map(district => (
+                  <option key={district} value={district}>{district}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Search Button */}
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  const searchTerm = selectedDistrict || selectedProvince || selectedCountry;
+                  if (searchTerm) {
+                    handleProvinceSelect(searchTerm);
+                  }
+                }}
+                disabled={!selectedCountry}
+                className="w-full py-4 px-6 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-sm font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest disabled:cursor-not-allowed"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                {lang === 'tr' ? 'ARA' : 'SEARCH'}
+              </button>
+            </div>
+
+            {/* Warning Message */}
+            <div className="col-span-full mt-4 flex items-start gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                Sensör bulunmayan bölgeler için en yakın istasyonun hava kalitesi verileri gösterilmektedir.
+              </p>
+            </div>
+          </div>
+        </section>
 
         {/* Educational Section */}
         <section id="educational-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-20">
