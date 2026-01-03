@@ -1,5 +1,6 @@
 import UIKit
 import WebKit
+import CoreLocation
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -20,25 +21,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 }
 
-class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
+class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, CLLocationManagerDelegate {
   private var webView: WKWebView!
   private var activityIndicator: UIActivityIndicatorView!
-
+  private let locationManager = CLLocationManager()
+  
   // Web uygulamanızın URL'si
   private let webAppURL = "https://aero-guard.netlify.app"
 
   override func viewDidLoad() {
     super.viewDidLoad()
-
+    
+    setupLocationManager()
     setupWebView()
     setupActivityIndicator()
     loadWebApp()
+  }
+  
+  private func setupLocationManager() {
+    locationManager.delegate = self
+    locationManager.desiredAccuracy = kCLLocationAccuracyBest
   }
 
   private func setupWebView() {
     let configuration = WKWebViewConfiguration()
     configuration.allowsInlineMediaPlayback = true
     configuration.mediaTypesRequiringUserActionForPlayback = []
+
+    // Inject Geolocation Polyfill
+    let scriptSource = """
+      navigator.geolocation.getCurrentPosition = function(success, error, options) {
+        window.locationCallbackSuccess = success;
+        window.locationCallbackError = error;
+        window.webkit.messageHandlers.locationHandler.postMessage('getLocation');
+      };
+    """
+    let userScript = WKUserScript(source: scriptSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+    configuration.userContentController.addUserScript(userScript)
+    configuration.userContentController.add(self, name: "locationHandler")
 
     // Preferences
     let preferences = WKWebpagePreferences()
@@ -98,6 +118,62 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
       })
     alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
     present(alert, animated: true)
+  }
+  
+  // MARK: - WKScriptMessageHandler
+  func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    if message.name == "locationHandler" {
+      if locationManager.authorizationStatus == .notDetermined {
+        locationManager.requestWhenInUseAuthorization()
+      } else if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
+        locationManager.requestLocation()
+      } else {
+        // Denied
+         evaluateJS("if(window.locationCallbackError) window.locationCallbackError({code: 1, message: 'Permission denied'})")
+      }
+    }
+  }
+
+  // MARK: - CLLocationManagerDelegate
+  func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+    if status == .authorizedWhenInUse || status == .authorizedAlways {
+      manager.requestLocation()
+    } else if status == .denied {
+      evaluateJS("if(window.locationCallbackError) window.locationCallbackError({code: 1, message: 'Permission denied'})")
+    }
+  }
+
+  func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    guard let location = locations.last else { return }
+    let lat = location.coordinate.latitude
+    let lng = location.coordinate.longitude
+    
+    let json = """
+      {
+        coords: {
+          latitude: \(lat),
+          longitude: \(lng),
+          altitude: null,
+          accuracy: \(location.horizontalAccuracy),
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null
+        },
+        timestamp: \(Date().timeIntervalSince1970 * 1000)
+      }
+    """
+    
+    evaluateJS("if(window.locationCallbackSuccess) window.locationCallbackSuccess(\(json))")
+  }
+
+  func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+     evaluateJS("if(window.locationCallbackError) window.locationCallbackError({code: 2, message: 'Position unavailable'})")
+  }
+  
+  private func evaluateJS(_ js: String) {
+    DispatchQueue.main.async {
+      self.webView.evaluateJavaScript(js, completionHandler: nil)
+    }
   }
 
   // MARK: - WKNavigationDelegate

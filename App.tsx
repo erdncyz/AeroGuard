@@ -198,33 +198,10 @@ const App: React.FC = () => {
 
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button
-                onClick={() => {
-                  const section = document.getElementById('educational-section');
-                  section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="hidden sm:inline-flex px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
-              >
-                {t.about}
-              </button>
-              <button
                 onClick={() => setShowWidgetModal(true)}
                 className="hidden sm:inline-flex whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
               >
                 {t.widget}
-              </button>
-              <button
-                onClick={() => setShowDownloadModal(true)}
-                className="hidden sm:inline-flex px-3 sm:px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-white hover:bg-black transition-all uppercase tracking-widest active:scale-95"
-              >
-                {t.getApp}
-              </button>
-              <button
-                onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
-                className="px-2.5 sm:px-3 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-200 rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black shadow-sm text-slate-400 hover:bg-slate-50 transition-all uppercase tracking-wider sm:tracking-widest flex items-center gap-1 sm:gap-1.5 flex-shrink-0"
-              >
-                <span className={lang === 'en' ? 'text-emerald-500' : ''}>EN</span>
-                <span className="text-slate-200 font-normal">|</span>
-                <span className={lang === 'tr' ? 'text-emerald-500' : ''}>TR</span>
               </button>
             </div>
           </div>
@@ -232,25 +209,10 @@ const App: React.FC = () => {
           {/* Mobile-only bottom buttons */}
           <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
             <button
-              onClick={() => {
-                const section = document.getElementById('educational-section');
-                section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className="flex-shrink-0 px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black shadow-sm text-slate-600 active:bg-slate-50 transition-all uppercase tracking-widest"
-            >
-              {t.about}
-            </button>
-            <button
               onClick={() => setShowWidgetModal(true)}
               className="flex-shrink-0 whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black shadow-sm text-slate-600 active:bg-slate-50 transition-all uppercase tracking-widest"
             >
               {t.widget}
-            </button>
-            <button
-              onClick={() => setShowDownloadModal(true)}
-              className="flex-shrink-0 px-4 py-2 bg-slate-900 border border-slate-900 rounded-xl text-[9px] font-black shadow-sm text-white active:bg-black transition-all uppercase tracking-widest"
-            >
-              {t.getApp}
             </button>
           </div>
         </header>

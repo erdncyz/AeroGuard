@@ -1,0 +1,10 @@
+/* 
+  InfoPlist.strings
+  AeroGuardMobile
+
+  Created by AeroGuard on 2024.
+*/
+
+"NSLocationWhenInUseUsageDescription" = "Bölgenizdeki hava kalitesi verilerini göstermek için konumunuza ihtiyacımız var.";
+"CFBundleDisplayName" = "AeroGuard";
+"CFBundleName" = "AeroGuard";
