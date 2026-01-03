@@ -320,15 +320,26 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={loadLocationData}
-                      className="w-full py-4 px-8 bg-slate-900 hover:bg-black text-white text-[10px] font-black rounded-2xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                      {t.useLocation}
-                    </button>
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={loadLocationData}
+                        className="w-full py-4 px-8 bg-slate-900 hover:bg-black text-white text-[10px] font-black rounded-2xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        {t.useLocation}
+                      </button>
+
+                      <div className="flex items-start gap-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-[10px] text-slate-500 leading-relaxed font-bold">
+                          Sensör bulunmayan bölgeler için en yakın istasyon verileri gösterilir.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
