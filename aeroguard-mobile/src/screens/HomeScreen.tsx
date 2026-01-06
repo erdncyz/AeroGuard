@@ -13,12 +13,15 @@ import * as waqiService from '../services/waqiService';
 import { StationData } from '../types/types';
 import { getAqiMetadata } from '../constants/constants';
 
-const { width } = Dimensions.get('window');
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+
+const { width, height } = Dimensions.get('window');
 
 const HomeScreen = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [stationData, setStationData] = useState<StationData | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
     const loadLocationData = async () => {
         try {
@@ -82,47 +85,92 @@ const HomeScreen = () => {
                 </View>
             </View>
 
-            {/* Main AQI Card */}
-            <View style={styles.mainCard}>
-                <View style={[styles.aqiCircle, { backgroundColor: aqiMeta.color }]}>
-                    <Text style={styles.aqiValue}>{stationData.aqi}</Text>
-                    <Text style={styles.aqiLabel}>AQI</Text>
-                </View>
-
-                <View style={[styles.statusBadge, { backgroundColor: aqiMeta.color }]}>
-                    <Text style={styles.statusText}>
-                        {aqiMeta.key === 'good' && 'İYİ'}
-                        {aqiMeta.key === 'moderate' && 'ORTA'}
-                        {aqiMeta.key === 'unhealthySensitive' && 'HASSAS'}
-                        {aqiMeta.key === 'unhealthy' && 'SAĞLIKSIZ'}
-                        {aqiMeta.key === 'veryUnhealthy' && 'ÇOK SAĞLIKSIZ'}
-                        {aqiMeta.key === 'hazardous' && 'TEHLİKELİ'}
-                    </Text>
-                </View>
-
-                <View style={styles.locationContainer}>
-                    <Text style={styles.locationIcon}>📍</Text>
-                    <Text style={styles.locationText}>{stationData.city.name}</Text>
-                </View>
-
-                <View style={styles.infoGrid}>
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoLabel}>SON GÜNCELLEME</Text>
-                        <Text style={styles.infoValue}>
-                            {new Date(stationData.time.iso).toLocaleTimeString('tr-TR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            })}
-                        </Text>
-                    </View>
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoLabel}>BASKIN KİRLETİCİ</Text>
-                        <Text style={styles.infoValue}>
-                            {stationData.dominentpol?.toUpperCase()}
-                        </Text>
-                    </View>
-                </View>
+            {/* View Mode Toggle */}
+            <View style={styles.toggleContainer}>
+                <TouchableOpacity
+                    style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+                    onPress={() => setViewMode('list')}
+                >
+                    <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>KART</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+                    onPress={() => setViewMode('map')}
+                >
+                    <Text style={[styles.toggleText, viewMode === 'map' && styles.toggleTextActive]}>HARİTA</Text>
+                </TouchableOpacity>
             </View>
+
+            {viewMode === 'list' ? (
+                /* Main AQI Card */
+                <View style={styles.mainCard}>
+                    <View style={[styles.aqiCircle, { backgroundColor: aqiMeta.color }]}>
+                        <Text style={styles.aqiValue}>{stationData.aqi}</Text>
+                        <Text style={styles.aqiLabel}>AQI</Text>
+                    </View>
+
+                    <View style={[styles.statusBadge, { backgroundColor: aqiMeta.color }]}>
+                        <Text style={styles.statusText}>
+                            {aqiMeta.key === 'good' && 'İYİ'}
+                            {aqiMeta.key === 'moderate' && 'ORTA'}
+                            {aqiMeta.key === 'unhealthySensitive' && 'HASSAS'}
+                            {aqiMeta.key === 'unhealthy' && 'SAĞLIKSIZ'}
+                            {aqiMeta.key === 'veryUnhealthy' && 'ÇOK SAĞLIKSIZ'}
+                            {aqiMeta.key === 'hazardous' && 'TEHLİKELİ'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.locationContainer}>
+                        <Text style={styles.locationIcon}>📍</Text>
+                        <Text style={styles.locationText}>{stationData.city.name}</Text>
+                    </View>
+
+                    <View style={styles.infoGrid}>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoLabel}>SON GÜNCELLEME</Text>
+                            <Text style={styles.infoValue}>
+                                {new Date(stationData.time.iso).toLocaleTimeString('tr-TR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </Text>
+                        </View>
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoLabel}>BASKIN KİRLETİCİ</Text>
+                            <Text style={styles.infoValue}>
+                                {stationData.dominentpol?.toUpperCase()}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            ) : (
+                /* Map View */
+                <View style={styles.mapContainer}>
+                    <MapView
+                        provider={PROVIDER_DEFAULT}
+                        style={styles.map}
+                        initialRegion={{
+                            latitude: stationData.city.geo[0],
+                            longitude: stationData.city.geo[1],
+                            latitudeDelta: 0.0922,
+                            longitudeDelta: 0.0421,
+                        }}
+                    >
+                        <Marker
+                            coordinate={{
+                                latitude: stationData.city.geo[0],
+                                longitude: stationData.city.geo[1],
+                            }}
+                            title={stationData.city.name}
+                            description={`AQI: ${stationData.aqi}`}
+                        >
+                            <View style={[styles.mapMarker, { backgroundColor: aqiMeta.color }]}>
+                                <Text style={styles.mapMarkerText}>{stationData.aqi}</Text>
+                            </View>
+                        </Marker>
+                    </MapView>
+                </View>
+            )}
 
             {/* Pollutants */}
             <View style={styles.section}>
@@ -478,6 +526,67 @@ const styles = StyleSheet.create({
     weatherValue: {
         fontSize: 16,
         fontWeight: '900',
+    },
+    toggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#e2e8f0',
+        marginHorizontal: 20,
+        marginVertical: 16,
+        borderRadius: 16,
+        padding: 4,
+    },
+    toggleButton: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 12,
+    },
+    toggleButtonActive: {
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    toggleText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#64748b',
+    },
+    toggleTextActive: {
+        color: '#0f172a',
+    },
+    mapContainer: {
+        height: 350,
+        marginHorizontal: 20,
+        borderRadius: 32,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginBottom: 24,
+    },
+    map: {
+        width: '100%',
+        height: '100%',
+    },
+    mapMarker: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+    mapMarkerText: {
+        color: '#fff',
+        fontWeight: '900',
+        fontSize: 12,
     },
     footer: {
         padding: 32,
