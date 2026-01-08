@@ -25,8 +25,7 @@ const App: React.FC = () => {
   const [cleanestRegion, setCleanestRegion] = useState<SearchResult | null>(null);
   const [mostPollutedRegion, setMostPollutedRegion] = useState<SearchResult | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [showWidgetModal, setShowWidgetModal] = useState(false);
-  const [activeWidgetType, setActiveWidgetType] = useState<'classic' | 'wide' | 'detailed'>('classic');
+
 
   const t = translations[lang];
 
@@ -198,25 +197,10 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <button
-                onClick={() => setShowWidgetModal(true)}
-                className="hidden sm:inline-flex whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[10px] font-black shadow-sm text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest active:scale-95"
-              >
-                {t.widget}
-              </button>
-            </div>
+
           </div>
 
-          {/* Mobile-only bottom buttons */}
-          <div className="flex sm:hidden gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-            <button
-              onClick={() => setShowWidgetModal(true)}
-              className="flex-shrink-0 whitespace-nowrap px-4 py-2 bg-white border border-slate-200 rounded-xl text-[9px] font-black shadow-sm text-slate-600 active:bg-slate-50 transition-all uppercase tracking-widest"
-            >
-              {t.widget}
-            </button>
-          </div>
+
         </header>
 
 
@@ -789,108 +773,7 @@ const App: React.FC = () => {
           )
         }
 
-        {
-          showWidgetModal && stationData && (
-            <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-              <div className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl relative animate-in slide-in-from-bottom duration-300 pb-safe">
-                <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
-                <h3 className="text-2xl font-black text-slate-800 mb-1 tracking-tight text-center sm:text-left">{t.widgetTitle}</h3>
-                <p className="text-[10px] text-slate-400 font-bold mb-6 uppercase tracking-widest text-center sm:text-left">{t.widgetDesc}</p>
 
-                <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8">
-                  {(['classic', 'wide', 'detailed'] as const).map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setActiveWidgetType(type)}
-                      className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all ${activeWidgetType === type
-                        ? 'bg-white shadow-sm text-slate-900 scale-100'
-                        : 'text-slate-400 hover:text-slate-600 scale-95'
-                        }`}
-                    >
-                      {t.widgetTypes[type]}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="bg-slate-50 p-8 rounded-[3.5rem] border-4 border-slate-100 shadow-inner flex flex-col items-center justify-center mb-6 min-h-[260px] relative">
-                  {activeWidgetType === 'classic' && (
-                    <div className={`w-40 h-40 rounded-[2.5rem] p-6 flex flex-col justify-between shadow-2xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black opacity-90 uppercase tracking-[0.1em]">AEROGUARD</span>
-                        <div className="w-2.5 h-2.5 rounded-full bg-white opacity-40 shadow-inner"></div>
-                      </div>
-                      <div className="text-center py-2">
-                        <span className="text-5xl font-black block tracking-tighter leading-[1]">{stationData.aqi}</span>
-                        <span className="text-[10px] font-black opacity-80 uppercase tracking-[0.2em] mt-1 block">AQI</span>
-                      </div>
-                      <div className="bg-white/25 rounded-2xl py-2 px-3 text-center backdrop-blur-md border border-white/10">
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em]">{aqiText?.label}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeWidgetType === 'wide' && (
-                    <div className={`w-full max-w-[280px] h-28 rounded-[1.75rem] p-5 flex items-center justify-between shadow-xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
-                      <div className="flex flex-col justify-center border-r border-white/20 pr-5">
-                        <span className="text-3xl font-black leading-tight tracking-tighter">{stationData.aqi}</span>
-                        <span className="text-[9px] font-black opacity-80 uppercase tracking-widest">AQI</span>
-                      </div>
-                      <div className="flex-1 px-5 overflow-hidden">
-                        <p className="text-xs font-black truncate tracking-tight">{stationData.city.name}</p>
-                        <p className="text-[9px] font-black opacity-80 uppercase tracking-[0.15em] mt-0.5">{aqiText?.label}</p>
-                      </div>
-                      <div className="bg-white/20 rounded-2xl p-2.5 text-center backdrop-blur-sm border border-white/10">
-                        <span className="text-xl font-black leading-none">{stationData.iaqi.t?.v ?? '--'}°</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeWidgetType === 'detailed' && (
-                    <div className={`w-48 aspect-square rounded-[2.25rem] p-5 flex flex-col shadow-2xl ${aqiMeta?.color} text-white animate-in zoom-in duration-300`}>
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex flex-col">
-                          <span className="text-2xl font-black leading-none tracking-tighter">{stationData.aqi}</span>
-                          <span className="text-[8px] font-black uppercase opacity-90 tracking-widest">{aqiText?.label}</span>
-                        </div>
-                        <div className="bg-white/20 rounded-xl px-2.5 py-1.5 text-[8px] font-black uppercase tracking-widest border border-white/10">{stationData.dominentpol}</div>
-                      </div>
-                      <div className="flex-1 flex flex-col gap-2">
-                        <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
-                          <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">PM2.5</span>
-                          <span className="text-xs font-black">{stationData.iaqi.pm25?.v ?? '--'}</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
-                          <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">PM10</span>
-                          <span className="text-xs font-black">{stationData.iaqi.pm10?.v ?? '--'}</span>
-                        </div>
-                        <div className="flex items-center justify-between bg-white/15 rounded-xl px-3 py-2 border border-white/5">
-                          <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">TEMP</span>
-                          <span className="text-xs font-black">{stationData.iaqi.t?.v ?? '--'}°C</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-8 p-5 bg-slate-50 rounded-2xl border border-slate-100">
-                  <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <span className="p-1 bg-emerald-100 text-emerald-600 rounded-lg">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </span>
-                    {t.widgetHowToTitle}
-                  </h4>
-                  <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
-                    {t.widgetHowToDesc}
-                  </p>
-                </div>
-
-                <button onClick={() => setShowWidgetModal(false)} className="w-full py-4.5 bg-slate-900 text-white font-black rounded-2xl uppercase text-[11px] tracking-widest active:scale-95 transition-transform shadow-lg">{t.close}</button>
-              </div>
-            </div>
-          )
-        }
       </div >
     </div >
   );
