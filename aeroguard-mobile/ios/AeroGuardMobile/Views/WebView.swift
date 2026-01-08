@@ -38,10 +38,15 @@ struct WebView: UIViewRepresentable {
         let aqiScriptSource = """
             setInterval(function() {
                 var text = document.body.innerText;
-                var match = text.match(/(\\d+)\\s*\\n*\\s*AQI ENDEKSİ/i);
-                if (match && match[1]) {
-                    var aqi = parseInt(match[1]);
-                    window.webkit.messageHandlers.aqiHandler.postMessage({aqi: aqi});
+                var aqiMatch = text.match(/(\\d+)\\s*\\n*\\s*AQI ENDEKSİ/i);
+                
+                // Try to find location - look for city names before "California" or similar patterns
+                var locationMatch = text.match(/([A-Za-zÇçĞğİıÖöŞşÜü\\s-]+)(?:,\\s*(?:California|Turkey|Türkiye))/i);
+                var location = locationMatch ? locationMatch[1].trim() : "Bilinmeyen Konum";
+                
+                if (aqiMatch && aqiMatch[1]) {
+                    var aqi = parseInt(aqiMatch[1]);
+                    window.webkit.messageHandlers.aqiHandler.postMessage({aqi: aqi, location: location});
                 }
             }, 5000);
             """
@@ -115,9 +120,11 @@ struct WebView: UIViewRepresentable {
                 }
             } else if message.name == "aqiHandler" {
                 if let body = message.body as? [String: Any], let aqi = body["aqi"] as? Int {
-                    // print("DEBUG: Received AQI from Web: \(aqi)")
+                    let location = body["location"] as? String ?? "Bilinmeyen Konum"
+                    // print("DEBUG: Received AQI: \(aqi), Location: \(location)")
                     if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
                         userDefaults.set(aqi, forKey: "currentAQI")
+                        userDefaults.set(location, forKey: "currentLocation")
                         WidgetCenter.shared.reloadAllTimelines()
                     }
                 }

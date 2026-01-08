@@ -33,6 +33,7 @@ struct Provider: AppIntentTimelineProvider {
         // Read real data from App Group
         let userDefaults = UserDefaults(suiteName: "group.com.aeroguardios.app")
         let realAQI = userDefaults?.integer(forKey: "currentAQI") ?? 0
+        let realLocation = userDefaults?.string(forKey: "currentLocation") ?? "Bilinmeyen Konum"
 
         // Define status based on AQI
         let status: String
@@ -55,9 +56,9 @@ struct Provider: AppIntentTimelineProvider {
             status = "İyi"
         }
 
-        // Create the entry
+        // Create the entry with real location
         let entry = SimpleEntry(
-            date: currentDate, aqi: colorAQI, status: status, location: "San Francisco",
+            date: currentDate, aqi: colorAQI, status: status, location: realLocation,
             configuration: configuration)
         entries.append(entry)
 
