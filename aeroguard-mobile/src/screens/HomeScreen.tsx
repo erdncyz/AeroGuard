@@ -15,6 +15,7 @@ import {
     FlatList,
     Alert,
     SafeAreaView,
+    Linking,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import * as waqiService from '../services/waqiService';
@@ -36,6 +37,9 @@ const HomeScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    // Settings/Info Modal State
+    const [settingsVisible, setSettingsVisible] = useState(false);
 
     const requestPermissions = async () => {
         if (Platform.OS === 'ios') {
@@ -151,6 +155,15 @@ const HomeScreen = () => {
         }
     };
 
+    const openLink = async (url: string) => {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+            await Linking.openURL(url);
+        } else {
+            Alert.alert('Hata', 'Bu bağlantı açılamadı: ' + url);
+        }
+    };
+
     if (loading && !stationData) {
         return (
             <View style={styles.loadingContainer}>
@@ -183,20 +196,31 @@ const HomeScreen = () => {
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.headerLeft}>
-                            <View style={styles.iconContainer}>
+                            <TouchableOpacity
+                                style={styles.iconContainer}
+                                onPress={() => setSettingsVisible(true)}
+                            >
                                 <Text style={styles.iconText}>☁️</Text>
-                            </View>
+                            </TouchableOpacity>
                             <View>
                                 <Text style={styles.title}>AeroGuard</Text>
                                 <Text style={styles.subtitle}>PRO</Text>
                             </View>
                         </View>
-                        <TouchableOpacity
-                            style={styles.searchButton}
-                            onPress={() => setSearchVisible(true)}
-                        >
-                            <Text style={styles.searchButtonText}>🔍 Ara</Text>
-                        </TouchableOpacity>
+                        <View style={styles.headerRight}>
+                            <TouchableOpacity
+                                style={styles.iconButton}
+                                onPress={() => setSettingsVisible(true)}
+                            >
+                                <Text style={styles.iconButtonText}>⚙️</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.searchButton}
+                                onPress={() => setSearchVisible(true)}
+                            >
+                                <Text style={styles.searchButtonText}>🔍 Ara</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -408,6 +432,58 @@ const HomeScreen = () => {
                     )}
                 </SafeAreaView>
             </Modal>
+
+            {/* Settings/Info Modal */}
+            <Modal
+                visible={settingsVisible}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setSettingsVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.settingsModal}>
+                        <View style={styles.settingsHeader}>
+                            <Text style={styles.settingsTitle}>Ayarlar & Hakkında</Text>
+                            <TouchableOpacity onPress={() => setSettingsVisible(false)}>
+                                <Text style={styles.settingsCloseButton}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.settingsContent}>
+                            <TouchableOpacity
+                                style={styles.settingsItem}
+                                onPress={() => openLink('https://aeroguard.app/privacy-policy.html')}
+                            >
+                                <Text style={styles.settingsItemIcon}>🔒</Text>
+                                <Text style={styles.settingsItemText}>Gizlilik Politikası</Text>
+                                <Text style={styles.settingsArrow}>›</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.settingsItem}
+                                onPress={() => openLink('https://aeroguard.app/support.html')}
+                            >
+                                <Text style={styles.settingsItemIcon}>✉️</Text>
+                                <Text style={styles.settingsItemText}>Destek & İletişim</Text>
+                                <Text style={styles.settingsArrow}>›</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.settingsItem}
+                                onPress={() => Alert.alert("Sürüm", "AeroGuard v1.0.1 (Build 2026.1)")}
+                            >
+                                <Text style={styles.settingsItemIcon}>ℹ️</Text>
+                                <Text style={styles.settingsItemText}>Uygulama Sürümü</Text>
+                                <Text style={styles.settingsVersion}>v1.0.1</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.settingsFooter}>
+                            <Text style={styles.copyrightText}>© 2026 AeroGuard Inc.</Text>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -481,6 +557,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
     iconContainer: {
         backgroundColor: '#10b981',
         width: 48,
@@ -505,11 +586,24 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
         marginTop: 2,
     },
+    iconButton: {
+        backgroundColor: '#f1f5f9',
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconButtonText: {
+        fontSize: 20,
+    },
     searchButton: {
         backgroundColor: '#f1f5f9',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 12,
+        height: 40,
+        justifyContent: 'center',
     },
     searchButtonText: {
         fontWeight: '700',
@@ -845,6 +939,77 @@ const styles = StyleSheet.create({
     emptyText: {
         textAlign: 'center',
         marginTop: 40,
+        color: '#94a3b8',
+        fontWeight: '600',
+    },
+    // Settings Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    settingsModal: {
+        backgroundColor: '#fff',
+        width: '85%',
+        borderRadius: 24,
+        overflow: 'hidden',
+    },
+    settingsHeader: {
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+    },
+    settingsTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#0f172a',
+    },
+    settingsCloseButton: {
+        fontSize: 20,
+        color: '#94a3b8',
+        fontWeight: '600',
+    },
+    settingsContent: {
+        padding: 8,
+    },
+    settingsItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 12,
+    },
+    settingsItemIcon: {
+        fontSize: 20,
+        marginRight: 12,
+    },
+    settingsItemText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#334155',
+    },
+    settingsArrow: {
+        fontSize: 18,
+        color: '#cbd5e1',
+        fontWeight: '800',
+    },
+    settingsVersion: {
+        fontSize: 12,
+        color: '#94a3b8',
+        fontWeight: '700',
+    },
+    settingsFooter: {
+        padding: 16,
+        backgroundColor: '#f8fafc',
+        alignItems: 'center',
+    },
+    copyrightText: {
+        fontSize: 10,
         color: '#94a3b8',
         fontWeight: '600',
     },
