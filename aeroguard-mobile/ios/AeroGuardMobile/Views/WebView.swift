@@ -1,6 +1,7 @@
 import CoreLocation
 import SwiftUI
 import WebKit
+import WidgetKit
 
 struct WebView: UIViewRepresentable {
     let url: URL
@@ -31,6 +32,22 @@ struct WebView: UIViewRepresentable {
             source: scriptSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         configuration.userContentController.addUserScript(userScript)
         configuration.userContentController.add(context.coordinator, name: "locationHandler")
+        configuration.userContentController.add(context.coordinator, name: "aqiHandler")
+
+        // Inject AQI Scanner Script
+        let aqiScriptSource = """
+            setInterval(function() {
+                var text = document.body.innerText;
+                var match = text.match(/(\\d+)\\s*\\n*\\s*AQI ENDEKSİ/i);
+                if (match && match[1]) {
+                    var aqi = parseInt(match[1]);
+                    window.webkit.messageHandlers.aqiHandler.postMessage({aqi: aqi});
+                }
+            }, 5000);
+            """
+        let aqiUserScript = WKUserScript(
+            source: aqiScriptSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        configuration.userContentController.addUserScript(aqiUserScript)
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -95,6 +112,14 @@ struct WebView: UIViewRepresentable {
                     evaluateJS(
                         "if(window.locationCallbackError) window.locationCallbackError({code: 1, message: 'Permission denied'})"
                     )
+                }
+            } else if message.name == "aqiHandler" {
+                if let body = message.body as? [String: Any], let aqi = body["aqi"] as? Int {
+                    // print("DEBUG: Received AQI from Web: \(aqi)")
+                    if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
+                        userDefaults.set(aqi, forKey: "currentAQI")
+                        WidgetCenter.shared.reloadAllTimelines()
+                    }
                 }
             }
         }

@@ -6,11 +6,19 @@ struct SettingsView: View {
             List {
                 Section(header: Text("Uygulama Hakkında")) {
                     HStack {
-                        Image("AppIcon")  // Varsayılan ikon veya sistem ikonu
-                            .resizable()
-                            .frame(width: 60, height: 60)
-                            .cornerRadius(12)
-                            .padding(.trailing, 10)
+                        // Logo Placeholder: App Icon Style
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.blue.opacity(0.8))
+                                .frame(width: 60, height: 60)
+
+                            Image(systemName: "wind")  // Hava kalitesi/Rüzgar ikonu
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 35, height: 35)
+                                .foregroundColor(.white)
+                        }
+                        .padding(.trailing, 10)
 
                         VStack(alignment: .leading) {
                             Text("AeroGuard")

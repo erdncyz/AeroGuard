@@ -3,20 +3,36 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		5D7C3FD1DD6C0C8EE2FBEEAC /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
-		CF6395D2293B3C1800B1A7E1 /* AeroGuardMobile/App/AeroGuardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D1293B3C1800B1A7E1 /* AeroGuardMobile/App/AeroGuardApp.swift */; };
-		CF6395D4293B3C1800B1A7E1 /* AeroGuardMobile/Views/ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D3293B3C1800B1A7E1 /* AeroGuardMobile/Views/ContentView.swift */; };
-		CF6395D6293B3C1800B1A7E1 /* AeroGuardMobile/Views/WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D5293B3C1800B1A7E1 /* WebView.swift */; };
-		CF6395D8293B3C1800B1A7E1 /* AeroGuardMobile/Constants/AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D7293B3C1800B1A7E1 /* AppConfig.swift */; };
-		CF6395DA293B3C1800B1A7E1 /* AeroGuardMobile/ViewModels/WebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D9293B3C1800B1A7E1 /* WebViewModel.swift */; };
-		CF6395DC293B3C1800B1A7E1 /* AeroGuardMobile/Views/SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395DB293B3C1800B1A7E1 /* SettingsView.swift */; };
+		BA713A582F103E9100DF5AD1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA713A572F103E9100DF5AD1 /* WidgetKit.framework */; };
+		BA713A5A2F103E9100DF5AD1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA713A592F103E9100DF5AD1 /* SwiftUI.framework */; };
+		BA713A6B2F103E9200DF5AD1 /* AeroGuardWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BA713A552F103E9100DF5AD1 /* AeroGuardWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CF6395D2293B3C1800B1A7E1 /* AeroGuardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D1293B3C1800B1A7E1 /* AeroGuardApp.swift */; };
+		CF6395D4293B3C1800B1A7E1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D3293B3C1800B1A7E1 /* ContentView.swift */; };
+		CF6395D6293B3C1800B1A7E1 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D5293B3C1800B1A7E1 /* WebView.swift */; };
+		CF6395D8293B3C1800B1A7E1 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D7293B3C1800B1A7E1 /* AppConfig.swift */; };
+		CF6395DA293B3C1800B1A7E1 /* WebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395D9293B3C1800B1A7E1 /* WebViewModel.swift */; };
+		CF6395DC293B3C1800B1A7E1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395DB293B3C1800B1A7E1 /* SettingsView.swift */; };
+		CF6395DE293B3C1800B1A7E1 /* WidgetGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395DD293B3C1800B1A7E1 /* WidgetGuideView.swift */; };
+		CF6395E0293B3C1800B1A7E1 /* WeatherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395DF293B3C1800B1A7E1 /* WeatherView.swift */; };
+		CF6395E2293B3C1800B1A7E1 /* WeatherViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6395E1293B3C1800B1A7E1 /* WeatherViewModel.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BA713A692F103E9200DF5AD1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BA713A542F103E9100DF5AD1;
+			remoteInfo = AeroGuardWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		9C038199326C6E10720896D2 /* Embed App Extensions */ = {
@@ -25,6 +41,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				BA713A6B2F103E9200DF5AD1 /* AeroGuardWidgetExtension.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -37,13 +54,35 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = AeroGuardMobile/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = AeroGuardMobile/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = AeroGuardMobile/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		BA713A552F103E9100DF5AD1 /* AeroGuardWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AeroGuardWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BA713A572F103E9100DF5AD1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		BA713A592F103E9100DF5AD1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BA713A8C2F1041F700DF5AD1 /* AeroGuardMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = AeroGuardMobile.entitlements; path = AeroGuardMobile/AeroGuardMobile.entitlements; sourceTree = "<group>"; };
+		BA713A8D2F10421100DF5AD1 /* AeroGuardWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AeroGuardWidgetExtension.entitlements; sourceTree = "<group>"; };
 		CF6395D1293B3C1800B1A7E1 /* AeroGuardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AeroGuardApp.swift; path = AeroGuardMobile/App/AeroGuardApp.swift; sourceTree = "<group>"; };
 		CF6395D3293B3C1800B1A7E1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = AeroGuardMobile/Views/ContentView.swift; sourceTree = "<group>"; };
 		CF6395D5293B3C1800B1A7E1 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebView.swift; path = AeroGuardMobile/Views/WebView.swift; sourceTree = "<group>"; };
 		CF6395D7293B3C1800B1A7E1 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppConfig.swift; path = AeroGuardMobile/Constants/AppConfig.swift; sourceTree = "<group>"; };
 		CF6395D9293B3C1800B1A7E1 /* WebViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WebViewModel.swift; path = AeroGuardMobile/ViewModels/WebViewModel.swift; sourceTree = "<group>"; };
 		CF6395DB293B3C1800B1A7E1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = AeroGuardMobile/Views/SettingsView.swift; sourceTree = "<group>"; };
+		CF6395DD293B3C1800B1A7E1 /* WidgetGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WidgetGuideView.swift; path = AeroGuardMobile/Views/WidgetGuideView.swift; sourceTree = "<group>"; };
+		CF6395DF293B3C1800B1A7E1 /* WeatherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WeatherView.swift; path = AeroGuardMobile/Views/WeatherView.swift; sourceTree = "<group>"; };
+		CF6395E1293B3C1800B1A7E1 /* WeatherViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WeatherViewModel.swift; path = AeroGuardMobile/ViewModels/WeatherViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BA713A6E2F103E9200DF5AD1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BA713A542F103E9100DF5AD1 /* AeroGuardWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BA713A5B2F103E9100DF5AD1 /* AeroGuardWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (BA713A6E2F103E9200DF5AD1 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = AeroGuardWidget; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		13B07F8C1A680F5B00A75B9A /* Frameworks */ = {
@@ -53,12 +92,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BA713A522F103E9100DF5AD1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA713A5A2F103E9100DF5AD1 /* SwiftUI.framework in Frameworks */,
+				BA713A582F103E9100DF5AD1 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		13B07FAE1A68108700A75B9A /* AeroGuardMobile */ = {
 			isa = PBXGroup;
 			children = (
+				BA713A8C2F1041F700DF5AD1 /* AeroGuardMobile.entitlements */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				900000000000000000000001 /* App */,
 				900000000000000000000002 /* Views */,
@@ -74,13 +123,25 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				BA713A8D2F10421100DF5AD1 /* AeroGuardWidgetExtension.entitlements */,
 				13B07FAE1A68108700A75B9A /* AeroGuardMobile */,
+				BA713A5B2F103E9100DF5AD1 /* AeroGuardWidget */,
+				BA713A562F103E9100DF5AD1 /* Frameworks */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
 			tabWidth = 2;
 			usesTabs = 0;
+		};
+		83CBBA001A601CBA00E9B192 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				13B07F961A680F5B00A75B9A /* AeroGuardMobile.app */,
+				BA713A552F103E9100DF5AD1 /* AeroGuardWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
 		};
 		900000000000000000000001 /* App */ = {
 			isa = PBXGroup;
@@ -96,6 +157,8 @@
 				CF6395D3293B3C1800B1A7E1 /* ContentView.swift */,
 				CF6395D5293B3C1800B1A7E1 /* WebView.swift */,
 				CF6395DB293B3C1800B1A7E1 /* SettingsView.swift */,
+				CF6395DD293B3C1800B1A7E1 /* WidgetGuideView.swift */,
+				CF6395DF293B3C1800B1A7E1 /* WeatherView.swift */,
 			);
 			name = Views;
 			sourceTree = "<group>";
@@ -112,16 +175,18 @@
 			isa = PBXGroup;
 			children = (
 				CF6395D9293B3C1800B1A7E1 /* WebViewModel.swift */,
+				CF6395E1293B3C1800B1A7E1 /* WeatherViewModel.swift */,
 			);
 			name = ViewModels;
 			sourceTree = "<group>";
 		};
-		83CBBA001A601CBA00E9B192 /* Products */ = {
+		BA713A562F103E9100DF5AD1 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* AeroGuardMobile.app */,
+				BA713A572F103E9100DF5AD1 /* WidgetKit.framework */,
+				BA713A592F103E9100DF5AD1 /* SwiftUI.framework */,
 			);
-			name = Products;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -139,11 +204,34 @@
 			buildRules = (
 			);
 			dependencies = (
+				BA713A6A2F103E9200DF5AD1 /* PBXTargetDependency */,
 			);
 			name = AeroGuardMobile;
 			productName = AeroGuardMobile;
 			productReference = 13B07F961A680F5B00A75B9A /* AeroGuardMobile.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BA713A542F103E9100DF5AD1 /* AeroGuardWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BA713A6F2F103E9200DF5AD1 /* Build configuration list for PBXNativeTarget "AeroGuardWidgetExtension" */;
+			buildPhases = (
+				BA713A512F103E9100DF5AD1 /* Sources */,
+				BA713A522F103E9100DF5AD1 /* Frameworks */,
+				BA713A532F103E9100DF5AD1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BA713A5B2F103E9100DF5AD1 /* AeroGuardWidget */,
+			);
+			name = AeroGuardWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = AeroGuardWidgetExtension;
+			productReference = BA713A552F103E9100DF5AD1 /* AeroGuardWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -152,10 +240,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1120;
+					};
+					BA713A542F103E9100DF5AD1 = {
+						CreatedOnToolsVersion = 26.2;
 					};
 				};
 			};
@@ -173,6 +265,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* AeroGuardMobile */,
+				BA713A542F103E9100DF5AD1 /* AeroGuardWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -188,6 +281,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BA713A532F103E9100DF5AD1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -195,16 +295,34 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CF6395D2293B3C1800B1A7E1 /* AeroGuardMobile/App/AeroGuardApp.swift in Sources */,
-				CF6395D4293B3C1800B1A7E1 /* AeroGuardMobile/Views/ContentView.swift in Sources */,
-				CF6395D6293B3C1800B1A7E1 /* AeroGuardMobile/Views/WebView.swift in Sources */,
-				CF6395D8293B3C1800B1A7E1 /* AeroGuardMobile/Constants/AppConfig.swift in Sources */,
-				CF6395DA293B3C1800B1A7E1 /* AeroGuardMobile/ViewModels/WebViewModel.swift in Sources */,
-				CF6395DC293B3C1800B1A7E1 /* AeroGuardMobile/Views/SettingsView.swift in Sources */,
+				CF6395D2293B3C1800B1A7E1 /* AeroGuardApp.swift in Sources */,
+				CF6395D4293B3C1800B1A7E1 /* ContentView.swift in Sources */,
+				CF6395D6293B3C1800B1A7E1 /* WebView.swift in Sources */,
+				CF6395D8293B3C1800B1A7E1 /* AppConfig.swift in Sources */,
+				CF6395DA293B3C1800B1A7E1 /* WebViewModel.swift in Sources */,
+				CF6395DC293B3C1800B1A7E1 /* SettingsView.swift in Sources */,
+				CF6395DE293B3C1800B1A7E1 /* WidgetGuideView.swift in Sources */,
+				CF6395E0293B3C1800B1A7E1 /* WeatherView.swift in Sources */,
+				CF6395E2293B3C1800B1A7E1 /* WeatherViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BA713A512F103E9100DF5AD1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BA713A6A2F103E9200DF5AD1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BA713A542F103E9100DF5AD1 /* AeroGuardWidgetExtension */;
+			targetProxy = BA713A692F103E9200DF5AD1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
@@ -212,11 +330,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CODE_SIGN_ENTITLEMENTS = AeroGuardMobile/AeroGuardMobile.entitlements;
+				CURRENT_PROJECT_VERSION = 5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = AeroGuardMobile/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -240,10 +359,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 4;
+				CODE_SIGN_ENTITLEMENTS = AeroGuardMobile/AeroGuardMobile.entitlements;
+				CURRENT_PROJECT_VERSION = 5;
 				INFOPLIST_FILE = AeroGuardMobile/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -396,6 +516,96 @@
 			};
 			name = Release;
 		};
+		BA713A6C2F103E9200DF5AD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = AeroGuardWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AeroGuardWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AeroGuardWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aeroguardios.app.AeroGuardWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BA713A6D2F103E9200DF5AD1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = AeroGuardWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AeroGuardWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = AeroGuardWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aeroguardios.app.AeroGuardWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -413,6 +623,15 @@
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
 				83CBBA211A601CBA00E9B192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BA713A6F2F103E9200DF5AD1 /* Build configuration list for PBXNativeTarget "AeroGuardWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BA713A6C2F103E9200DF5AD1 /* Debug */,
+				BA713A6D2F103E9200DF5AD1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
