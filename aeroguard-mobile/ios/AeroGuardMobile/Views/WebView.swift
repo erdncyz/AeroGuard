@@ -184,13 +184,26 @@ struct WebView: UIViewRepresentable {
                 }
             } else if message.name == "aqiHandler" {
                 if let body = message.body as? [String: Any], let aqi = body["aqi"] as? Int {
-                    let location = body["location"] as? String ?? "Bilinmeyen Konum"
-                    print("📍 DEBUG: Received AQI: \(aqi), Location: \(location)")
+                    let webLocation = body["location"] as? String ?? "Bilinmeyen Konum"
+                    print("📍 DEBUG: Received AQI: \(aqi), Location from web: \(webLocation)")
+
                     if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
+                        // Always update AQI
                         userDefaults.set(aqi, forKey: "currentAQI")
-                        userDefaults.set(location, forKey: "currentLocation")
-                        userDefaults.synchronize()  // Force save
-                        print("✅ DEBUG: Saved to App Group - AQI: \(aqi), Location: \(location)")
+
+                        // Only update location if we don't have a GPS-based location yet
+                        let existingLocation = userDefaults.string(forKey: "currentLocation")
+                        if existingLocation == nil || existingLocation == "Bilinmeyen Konum" {
+                            userDefaults.set(webLocation, forKey: "currentLocation")
+                            print("✅ DEBUG: Saved location from web: \(webLocation)")
+                        } else {
+                            print(
+                                "ℹ️ DEBUG: Keeping GPS location: \(existingLocation ?? ""), ignoring web location: \(webLocation)"
+                            )
+                        }
+
+                        userDefaults.synchronize()
+                        print("✅ DEBUG: Saved AQI to App Group: \(aqi)")
                         WidgetCenter.shared.reloadAllTimelines()
                         print("🔄 DEBUG: Widget timeline reloaded")
                     }
