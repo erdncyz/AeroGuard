@@ -31,6 +31,7 @@ export const fetchByGeo = async (lat: number, lng: number): Promise<StationData>
 
   try {
     const boundsUrl = `${WAQI_BASE_URL}/map/bounds/?token=${WAQI_TOKEN}&latlng=${latMin},${lngMin},${latMax},${lngMax}`;
+
     const boundsResponse = await fetch(boundsUrl);
     const boundsData = await boundsResponse.json();
 
@@ -40,9 +41,6 @@ export const fetchByGeo = async (lat: number, lng: number): Promise<StationData>
       let closestStation = null;
 
       for (const station of boundsData.data) {
-        // Skip stations with no numeric AQI or invalid data
-        if (station.aqi === '-' || isNaN(parseInt(station.aqi))) continue;
-
         const dist = getDistanceFromLatLonInKm(lat, lng, station.lat, station.lon);
         if (dist < minDistance) {
           minDistance = dist;
@@ -51,9 +49,6 @@ export const fetchByGeo = async (lat: number, lng: number): Promise<StationData>
       }
 
       if (closestStation) {
-        // Fetch detailed data for the closest station
-        // Check if uid is available, otherwise use index? 
-        // boundsData objects have 'uid' usually.
         return await fetchStationById(closestStation.uid);
       }
     }
