@@ -37,18 +37,82 @@ struct WebView: UIViewRepresentable {
         // Inject AQI Scanner Script
         let aqiScriptSource = """
             setInterval(function() {
+                var location = "Bilinmeyen Konum";
+                var aqi = null;
+                
+                // Strategy 1: Try to find location from page title or meta tags
+                var titleMatch = document.title.match(/(.+?)\\s+(?:Air Quality|Hava Kalitesi)/i);
+                if (titleMatch && titleMatch[1]) {
+                    location = titleMatch[1].trim();
+                }
+                
+                // Strategy 2: Look for location in specific DOM elements
+                if (location === "Bilinmeyen Konum") {
+                    // Try to find city name in h1, h2, or specific classes
+                    var headers = document.querySelectorAll('h1, h2, .city-name, .location-name');
+                    for (var i = 0; i < headers.length; i++) {
+                        var text = headers[i].innerText.trim();
+                        // Filter out common false positives
+                        if (text && 
+                            text.length > 2 && 
+                            text.length < 50 && 
+                            !text.match(/hPa|AQI|PM2\\.5|PM10|O3|NO2|SO2|CO|Hava Kalitesi|Air Quality|Dünyayı Keşfet|ÜLKE|ŞEHİR|İLÇE/i)) {
+                            location = text;
+                            break;
+                        }
+                    }
+                }
+                
+                // Strategy 3: Parse from body text more carefully
+                if (location === "Bilinmeyen Konum") {
+                    var bodyText = document.body.innerText;
+                    var lines = bodyText.split('\\n');
+                    
+                    for (var i = 0; i < lines.length; i++) {
+                        var line = lines[i].trim();
+                        
+                        // Look for city, country pattern
+                        var cityCountryMatch = line.match(/^([A-Za-zÇçĞğİıÖöŞşÜü\\s-]+),\\s*([A-Za-z]+)$/);
+                        if (cityCountryMatch && 
+                            !line.match(/hPa|AQI|PM2\\.5|PM10|O3|NO2|SO2|CO/i)) {
+                            location = cityCountryMatch[1].trim();
+                            break;
+                        }
+                        
+                        // Look for standalone city name before AQI
+                        if (line.includes('AQI') && i > 0) {
+                            for (var j = Math.max(0, i - 3); j < i; j++) {
+                                var prevLine = lines[j].trim();
+                                if (prevLine.length > 2 && 
+                                    prevLine.length < 50 && 
+                                    !prevLine.match(/\\d|hPa|AQI|PM2\\.5|PM10|O3|NO2|SO2|CO|Hava Kalitesi|Air Quality|Dünyayı Keşfet|ÜLKE|ŞEHİR|İLÇE|DAHA FAZLA|Neden Önemli/i) &&
+                                    prevLine.match(/[A-Za-zÇçĞğİıÖöŞşÜü]/)) {
+                                    location = prevLine;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                // Find AQI value
                 var text = document.body.innerText;
                 var aqiMatch = text.match(/(\\d+)\\s*\\n*\\s*AQI ENDEKSİ/i);
-                
-                // Try to find location - look for city names before "California" or similar patterns
-                var locationMatch = text.match(/([A-Za-zÇçĞğİıÖöŞşÜü\\s-]+)(?:,\\s*(?:California|Turkey|Türkiye))/i);
-                var location = locationMatch ? locationMatch[1].trim() : "Bilinmeyen Konum";
+                if (!aqiMatch) {
+                    aqiMatch = text.match(/(\\d+)\\s*AQI/i);
+                }
                 
                 if (aqiMatch && aqiMatch[1]) {
-                    var aqi = parseInt(aqiMatch[1]);
+                    aqi = parseInt(aqiMatch[1]);
+                }
+                
+                // Only send if we have valid AQI
+                if (aqi !== null && aqi > 0) {
+                    console.log('📊 AQI:', aqi, 'Location:', location);
                     window.webkit.messageHandlers.aqiHandler.postMessage({aqi: aqi, location: location});
                 }
-            }, 5000);
+            }, 3000);
             """
         let aqiUserScript = WKUserScript(
             source: aqiScriptSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
@@ -121,11 +185,14 @@ struct WebView: UIViewRepresentable {
             } else if message.name == "aqiHandler" {
                 if let body = message.body as? [String: Any], let aqi = body["aqi"] as? Int {
                     let location = body["location"] as? String ?? "Bilinmeyen Konum"
-                    // print("DEBUG: Received AQI: \(aqi), Location: \(location)")
+                    print("📍 DEBUG: Received AQI: \(aqi), Location: \(location)")
                     if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
                         userDefaults.set(aqi, forKey: "currentAQI")
                         userDefaults.set(location, forKey: "currentLocation")
+                        userDefaults.synchronize()  // Force save
+                        print("✅ DEBUG: Saved to App Group - AQI: \(aqi), Location: \(location)")
                         WidgetCenter.shared.reloadAllTimelines()
+                        print("🔄 DEBUG: Widget timeline reloaded")
                     }
                 }
             }
@@ -150,6 +217,30 @@ struct WebView: UIViewRepresentable {
             guard let location = locations.last else { return }
             let lat = location.coordinate.latitude
             let lng = location.coordinate.longitude
+
+            // Reverse geocode to get city name
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(location) { placemarks, error in
+                if let placemark = placemarks?.first {
+                    var cityName = "Bilinmeyen Konum"
+
+                    if let city = placemark.locality {
+                        cityName = city
+                    } else if let area = placemark.administrativeArea {
+                        cityName = area
+                    } else if let subArea = placemark.subAdministrativeArea {
+                        cityName = subArea
+                    }
+
+                    // Save to App Group immediately
+                    if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
+                        userDefaults.set(cityName, forKey: "currentLocation")
+                        userDefaults.synchronize()
+                        print("📍 DEBUG: Saved location from GPS: \(cityName)")
+                        WidgetCenter.shared.reloadAllTimelines()
+                    }
+                }
+            }
 
             let json = """
                   {

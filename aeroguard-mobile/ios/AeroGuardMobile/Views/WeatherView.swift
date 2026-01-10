@@ -103,7 +103,67 @@ struct WeatherView: View {
                             }
                             .padding(.horizontal)
 
-                            Spacer(minLength: 40)
+                            // Hourly Forecast Section
+                            if !viewModel.hourlyForecast.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Saatlik Tahmin")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal)
+
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 16) {
+                                            ForEach(viewModel.hourlyForecast, id: \.date) { hour in
+                                                HourlyWeatherCard(hourWeather: hour)
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
+                                }
+                                .padding(.top, 8)
+                            }
+
+                            // Daily Forecast Section
+                            if !viewModel.dailyForecast.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("10 Günlük Tahmin")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal)
+
+                                    VStack(spacing: 12) {
+                                        ForEach(viewModel.dailyForecast, id: \.date) { day in
+                                            DailyWeatherCard(dayWeather: day)
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
+                                .padding(.top, 8)
+                            }
+
+                            // Apple Weather Attribution (Required by Apple)
+                            VStack(spacing: 8) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "apple.logo")
+                                        .font(.caption)
+                                    Text("Weather")
+                                        .font(.caption)
+                                }
+                                .foregroundColor(.white.opacity(0.7))
+
+                                Link(
+                                    "Hava Durumu Veri Kaynağı",
+                                    destination: URL(
+                                        string:
+                                            "https://weatherkit.apple.com/legal-attribution.html")!
+                                )
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.6))
+                                .underline()
+                            }
+                            .padding(.vertical, 16)
+
+                            Spacer(minLength: 20)
                         }
                     }
                 } else {
@@ -148,6 +208,102 @@ struct WeatherDetailCard: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.white.opacity(0.2))
                 .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        )
+    }
+}
+
+// MARK: - Hourly Weather Card
+struct HourlyWeatherCard: View {
+    let hourWeather: HourWeather
+
+    private var timeString: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: hourWeather.date)
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(timeString)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+
+            Image(systemName: hourWeather.symbolName)
+                .font(.title2)
+                .foregroundColor(.white)
+                .symbolRenderingMode(.hierarchical)
+
+            Text("\(Int(hourWeather.temperature.value))°")
+                .font(.headline)
+                .foregroundColor(.white)
+        }
+        .frame(width: 70)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.2))
+        )
+    }
+}
+
+// MARK: - Daily Weather Card
+struct DailyWeatherCard: View {
+    let dayWeather: DayWeather
+
+    private var dayString: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "tr_TR")
+        formatter.dateFormat = "EEEE"
+        return formatter.string(from: dayWeather.date)
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // Day name
+            Text(dayString.capitalized)
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .frame(width: 100, alignment: .leading)
+
+            // Weather icon
+            Image(systemName: dayWeather.symbolName)
+                .font(.title3)
+                .foregroundColor(.white)
+                .symbolRenderingMode(.hierarchical)
+                .frame(width: 30)
+
+            Spacer()
+
+            // Temperature range
+            HStack(spacing: 8) {
+                Text("\(Int(dayWeather.lowTemperature.value))°")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.7))
+
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.blue.opacity(0.5),
+                                Color.orange.opacity(0.5),
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: 50, height: 4)
+                    .cornerRadius(2)
+
+                Text("\(Int(dayWeather.highTemperature.value))°")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.15))
         )
     }
 }

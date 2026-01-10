@@ -35,6 +35,10 @@ struct Provider: AppIntentTimelineProvider {
         let realAQI = userDefaults?.integer(forKey: "currentAQI") ?? 0
         let realLocation = userDefaults?.string(forKey: "currentLocation") ?? "Bilinmeyen Konum"
 
+        print("🔍 WIDGET DEBUG: Reading from App Group")
+        print("   - AQI: \(realAQI)")
+        print("   - Location: \(realLocation)")
+
         // Define status based on AQI
         let status: String
         let colorAQI: Int
@@ -61,6 +65,8 @@ struct Provider: AppIntentTimelineProvider {
             date: currentDate, aqi: colorAQI, status: status, location: realLocation,
             configuration: configuration)
         entries.append(entry)
+
+        print("✅ WIDGET DEBUG: Created entry with location: \(realLocation)")
 
         return Timeline(entries: entries, policy: .after(Date().addingTimeInterval(15 * 60)))  // Refresh every 15 mins
     }

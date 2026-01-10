@@ -5,6 +5,8 @@ import WeatherKit
 @MainActor
 class WeatherViewModel: NSObject, ObservableObject {
     @Published var currentWeather: CurrentWeather?
+    @Published var hourlyForecast: [HourWeather] = []
+    @Published var dailyForecast: [DayWeather] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var locationName: String = "Konum alınıyor..."
@@ -37,6 +39,20 @@ class WeatherViewModel: NSObject, ObservableObject {
         do {
             let weather = try await weatherService.weather(for: location)
             currentWeather = weather.currentWeather
+
+            // Get hourly forecast for next 24 hours
+            let hourlyWeather = try await weatherService.weather(
+                for: location,
+                including: .hourly
+            )
+            hourlyForecast = Array(hourlyWeather.prefix(24))
+
+            // Get daily forecast for next 10 days
+            let dailyWeather = try await weatherService.weather(
+                for: location,
+                including: .daily
+            )
+            dailyForecast = Array(dailyWeather.prefix(10))
 
             // Get location name
             let geocoder = CLGeocoder()
