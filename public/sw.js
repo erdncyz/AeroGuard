@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aeroguard-v1';
+const CACHE_NAME = 'aeroguard-v2';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -8,6 +8,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Force activation
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => cache.addAll(urlsToCache))
@@ -16,8 +17,8 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request)
-            .then((response) => response || fetch(event.request))
+        fetch(event.request)
+            .catch(() => caches.match(event.request))
     );
 });
 
@@ -30,7 +31,7 @@ self.addEventListener('activate', (event) => {
                         return caches.delete(cacheName);
                     }
                 })
-            );
+            ).then(() => self.clients.claim());
         })
     );
 });
