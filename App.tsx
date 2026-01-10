@@ -83,6 +83,11 @@ const App: React.FC = () => {
             } finally {
               setLoading(false);
             }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
           }
         );
       } else {

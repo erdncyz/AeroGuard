@@ -23,7 +23,7 @@ const deg2rad = (deg: number) => {
 export const fetchByGeo = async (lat: number, lng: number): Promise<StationData> => {
   // First, try to find stations within a bounding box to get the absolute nearest
   // Box size approx 20km
-  const diff = 0.2;
+  const diff = 0.5;
   const latMin = lat - diff;
   const latMax = lat + diff;
   const lngMin = lng - diff;
