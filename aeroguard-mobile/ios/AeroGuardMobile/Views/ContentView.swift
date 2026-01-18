@@ -1,4 +1,5 @@
 import SwiftUI
+import GoogleMobileAds
 
 struct ContentView: View {
     @StateObject private var viewModel = WebViewModel()
@@ -6,41 +7,59 @@ struct ContentView: View {
     var body: some View {
         TabView {
             // Tab 1: Air Quality (WebView)
-            ZStack {
-                WebView(url: viewModel.webUrl, isLoading: $viewModel.isLoading)
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                ZStack {
+                    WebView(url: viewModel.webUrl, isLoading: $viewModel.isLoading)
+                        .ignoresSafeArea(edges: .top)
 
-                if viewModel.isLoading {
-                    ZStack {
-                        Color.white.opacity(0.8)
-                        ProgressView()
-                            .scaleEffect(1.5, anchor: .center)
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                    if viewModel.isLoading {
+                        ZStack {
+                            Color.white.opacity(0.8)
+                            ProgressView()
+                                .scaleEffect(1.5, anchor: .center)
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                        }
+                        .ignoresSafeArea(edges: .top)
                     }
-                    .ignoresSafeArea()
                 }
+                
+                // Banner Ad above TabBar
+                AdaptiveBannerAdView()
+                    .background(Color(UIColor.systemBackground))
             }
             .tabItem {
                 Label("Hava Kalitesi", systemImage: "wind")
             }
 
             // Tab 2: Weather (Native WeatherKit)
-            WeatherView()
-                .tabItem {
-                    Label("Hava Durumu", systemImage: "cloud.sun.fill")
-                }
+            VStack(spacing: 0) {
+                WeatherView()
+                AdaptiveBannerAdView()
+                    .background(Color(UIColor.systemBackground))
+            }
+            .tabItem {
+                Label("Hava Durumu", systemImage: "cloud.sun.fill")
+            }
 
             // Tab 3: Widget Guide (Native)
-            WidgetGuideView()
-                .tabItem {
-                    Label("Widget", systemImage: "apps.iphone")
-                }
+            VStack(spacing: 0) {
+                WidgetGuideView()
+                AdaptiveBannerAdView()
+                    .background(Color(UIColor.systemBackground))
+            }
+            .tabItem {
+                Label("Widget", systemImage: "apps.iphone")
+            }
 
             // Tab 4: Settings (Native)
-            SettingsView()
-                .tabItem {
-                    Label("Ayarlar", systemImage: "gearshape.fill")
-                }
+            VStack(spacing: 0) {
+                SettingsView()
+                AdaptiveBannerAdView()
+                    .background(Color(UIColor.systemBackground))
+            }
+            .tabItem {
+                Label("Ayarlar", systemImage: "gearshape.fill")
+            }
         }
         .accentColor(.blue)  // Brand color
     }
