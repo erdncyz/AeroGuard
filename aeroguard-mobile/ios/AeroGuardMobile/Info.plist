@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Size daha alakalı reklamlar gösterebilmemiz için izninize ihtiyacımız var.</string>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-1271900948473545~6671318076</string>
 	<key>SKAdNetworkItems</key>
