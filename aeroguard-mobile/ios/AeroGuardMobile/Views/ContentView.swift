@@ -23,9 +23,8 @@ struct ContentView: View {
                     }
                 }
                 
-                // Banner Ad above TabBar
+                // Banner Ad above TabBar - only shows when ad is loaded
                 AdaptiveBannerAdView()
-                    .background(Color(UIColor.systemBackground))
             }
             .tabItem {
                 Label("Hava Kalitesi", systemImage: "wind")
@@ -35,7 +34,6 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 WeatherView()
                 AdaptiveBannerAdView()
-                    .background(Color(UIColor.systemBackground))
             }
             .tabItem {
                 Label("Hava Durumu", systemImage: "cloud.sun.fill")
@@ -45,7 +43,6 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 WidgetGuideView()
                 AdaptiveBannerAdView()
-                    .background(Color(UIColor.systemBackground))
             }
             .tabItem {
                 Label("Widget", systemImage: "apps.iphone")
@@ -55,7 +52,6 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 SettingsView()
                 AdaptiveBannerAdView()
-                    .background(Color(UIColor.systemBackground))
             }
             .tabItem {
                 Label("Ayarlar", systemImage: "gearshape.fill")
