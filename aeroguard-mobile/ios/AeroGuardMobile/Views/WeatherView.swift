@@ -1,6 +1,12 @@
 import SwiftUI
 import WeatherKit
 
+// MARK: - Custom Colors for Light Mode
+extension Color {
+    static let darkTextColor = Color(red: 0.1, green: 0.1, blue: 0.1)
+    static let secondaryTextColor = Color(red: 0.4, green: 0.4, blue: 0.4)
+}
+
 struct WeatherView: View {
     @StateObject private var viewModel = WeatherViewModel()
 
@@ -17,7 +23,7 @@ struct WeatherView: View {
                             .scaleEffect(1.5)
                             .tint(.blue)
                         Text("Hava durumu yükleniyor...")
-                            .foregroundColor(.primary)
+                            .foregroundColor(.darkTextColor)
                             .font(.headline)
                             .fontWeight(.medium)
                     }
@@ -27,7 +33,7 @@ struct WeatherView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.orange)
                         Text(error)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.darkTextColor)
                             .multilineTextAlignment(.center)
                             .font(.headline)
                             .padding(.horizontal, 32)
@@ -45,7 +51,7 @@ struct WeatherView: View {
                                     Text(viewModel.locationName)
                                         .font(.title3)
                                         .fontWeight(.semibold)
-                                        .foregroundColor(.primary)
+                                        .foregroundColor(.darkTextColor)
                                 }
                                 .padding(.top, 20)
 
@@ -66,11 +72,13 @@ struct WeatherView: View {
                                     // Temperature
                                     HStack(alignment: .top, spacing: 4) {
                                         Text("\(Int(weather.temperature.value))")
-                                            .font(.system(size: 84, weight: .thin, design: .rounded))
-                                            .foregroundColor(.primary)
+                                            .font(
+                                                .system(size: 84, weight: .thin, design: .rounded)
+                                            )
+                                            .foregroundColor(.darkTextColor)
                                         Text("°")
                                             .font(.system(size: 48, weight: .thin))
-                                            .foregroundColor(.primary)
+                                            .foregroundColor(.darkTextColor)
                                             .padding(.top, 8)
                                     }
 
@@ -78,7 +86,7 @@ struct WeatherView: View {
                                     Text(weather.condition.description)
                                         .font(.title2)
                                         .fontWeight(.medium)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.secondaryTextColor)
                                         .padding(.top, 4)
                                 }
                                 .padding(.vertical, 24)
@@ -90,21 +98,21 @@ struct WeatherView: View {
                                         value: "\(Int(weather.apparentTemperature.value))°",
                                         label: "Hissedilen"
                                     )
-                                    
+
                                     Divider()
                                         .frame(height: 40)
                                         .background(Color.gray.opacity(0.3))
-                                    
+
                                     QuickStatView(
                                         icon: "humidity.fill",
                                         value: "\(Int(weather.humidity * 100))%",
                                         label: "Nem"
                                     )
-                                    
+
                                     Divider()
                                         .frame(height: 40)
                                         .background(Color.gray.opacity(0.3))
-                                    
+
                                     QuickStatView(
                                         icon: "wind",
                                         value: "\(Int(weather.wind.speed.value))",
@@ -124,7 +132,10 @@ struct WeatherView: View {
 
                             // Weather details grid with modern cards
                             LazyVGrid(
-                                columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)],
+                                columns: [
+                                    GridItem(.flexible(), spacing: 12),
+                                    GridItem(.flexible(), spacing: 12),
+                                ],
                                 spacing: 12
                             ) {
                                 ModernWeatherCard(
@@ -166,14 +177,15 @@ struct WeatherView: View {
                                         Text("Saatlik Tahmin")
                                             .font(.title3)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.primary)
+                                            .foregroundColor(.darkTextColor)
                                         Spacer()
                                     }
                                     .padding(.horizontal, 20)
 
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 12) {
-                                            ForEach(viewModel.hourlyForecast.prefix(24), id: \.date) { hour in
+                                            ForEach(viewModel.hourlyForecast.prefix(24), id: \.date)
+                                            { hour in
                                                 ModernHourlyCard(hourWeather: hour)
                                             }
                                         }
@@ -190,7 +202,7 @@ struct WeatherView: View {
                                         Text("10 Günlük Tahmin")
                                             .font(.title3)
                                             .fontWeight(.bold)
-                                            .foregroundColor(.primary)
+                                            .foregroundColor(.darkTextColor)
                                         Spacer()
                                     }
                                     .padding(.horizontal, 20)
@@ -217,7 +229,9 @@ struct WeatherView: View {
 
                                 Link(
                                     "Hava Durumu Veri Kaynağı",
-                                    destination: URL(string: "https://weatherkit.apple.com/legal-attribution.html")!
+                                    destination: URL(
+                                        string:
+                                            "https://weatherkit.apple.com/legal-attribution.html")!
                                 )
                                 .font(.caption2)
                                 .foregroundColor(.blue)
@@ -233,7 +247,7 @@ struct WeatherView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.gray)
                         Text("Hava durumu verisi bekleniyor...")
-                            .foregroundColor(.primary)
+                            .foregroundColor(.darkTextColor)
                             .font(.headline)
                     }
                 }
@@ -268,10 +282,10 @@ struct QuickStatView: View {
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundColor(.primary)
+                .foregroundColor(.darkTextColor)
             Text(label)
                 .font(.caption2)
-                .foregroundColor(.secondary)
+                .foregroundColor(.secondaryTextColor)
         }
     }
 }
@@ -298,17 +312,17 @@ struct ModernWeatherCard: View {
                 Text(value)
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.darkTextColor)
 
                 Text(title)
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.secondaryTextColor)
                     .lineLimit(2)
 
                 if let subtitle = subtitle {
                     Text(subtitle)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.secondaryTextColor)
                         .padding(.top, 2)
                 }
             }
@@ -344,7 +358,7 @@ struct ModernHourlyCard: View {
             Text(timeString)
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundColor(.primary)
+                .foregroundColor(.darkTextColor)
 
             Image(systemName: hourWeather.symbolName)
                 .font(.title3)
@@ -361,7 +375,7 @@ struct ModernHourlyCard: View {
             Text("\(Int(hourWeather.temperature.value))°")
                 .font(.headline)
                 .fontWeight(.bold)
-                .foregroundColor(.primary)
+                .foregroundColor(.darkTextColor)
         }
         .frame(width: 75)
         .padding(.vertical, 16)
@@ -398,7 +412,7 @@ struct ModernDailyCard: View {
             Text(dayString)
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .foregroundColor(.primary)
+                .foregroundColor(.darkTextColor)
                 .frame(width: 80, alignment: .leading)
 
             // Weather icon
@@ -420,7 +434,7 @@ struct ModernDailyCard: View {
             HStack(spacing: 12) {
                 Text("\(Int(dayWeather.lowTemperature.value))°")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.secondaryTextColor)
                     .frame(width: 35, alignment: .trailing)
 
                 // Temperature bar
@@ -439,7 +453,7 @@ struct ModernDailyCard: View {
                                 LinearGradient(
                                     gradient: Gradient(colors: [
                                         Color.blue.opacity(0.6),
-                                        Color.orange.opacity(0.6)
+                                        Color.orange.opacity(0.6),
                                     ]),
                                     startPoint: .leading,
                                     endPoint: .trailing
@@ -454,7 +468,7 @@ struct ModernDailyCard: View {
                 Text("\(Int(dayWeather.highTemperature.value))°")
                     .font(.subheadline)
                     .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                    .foregroundColor(.darkTextColor)
                     .frame(width: 35, alignment: .leading)
             }
         }

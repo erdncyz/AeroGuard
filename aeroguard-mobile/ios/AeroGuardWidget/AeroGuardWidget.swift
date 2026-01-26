@@ -93,21 +93,15 @@ struct AeroGuardWidgetEntryView: View {
         }
     }
 
-    var textColor: Color {
-        // Yellow/Green might need dark text, Red/Purple light text.
-        // For simplicity, let's use white for darker, black for lighter.
-        if entry.aqi > 50 && entry.aqi <= 100 { return .black }  // Yellow background
-        return .white
-    }
+    // Dark text color for white background
+    private let darkTextColor = Color(red: 0.1, green: 0.1, blue: 0.1)
+    private let secondaryTextColor = Color(red: 0.4, green: 0.4, blue: 0.4)
 
     var body: some View {
         ZStack {
-            // Background
+            // White background
             ContainerRelativeShape()
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [colorForAQI.opacity(0.8), colorForAQI]),
-                        startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(Color.white)
 
             VStack(alignment: .leading) {
                 HStack {
@@ -117,27 +111,28 @@ struct AeroGuardWidgetEntryView: View {
                         .font(.caption)
                         .bold()
                 }
-                .foregroundColor(textColor.opacity(0.8))
+                .foregroundColor(secondaryTextColor)
 
                 Spacer()
 
                 HStack(alignment: .lastTextBaseline) {
                     Text("\(entry.aqi)")
                         .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .foregroundColor(colorForAQI)
                     Text("AQI")
                         .font(.caption)
                         .fontWeight(.bold)
                         .padding(.bottom, 4)
+                        .foregroundColor(darkTextColor)
                 }
-                .foregroundColor(textColor)
 
                 Text(entry.status)
                     .font(.headline)
-                    .foregroundColor(textColor)
+                    .foregroundColor(colorForAQI)
 
                 Text(entry.location)
                     .font(.caption2)
-                    .foregroundColor(textColor.opacity(0.8))
+                    .foregroundColor(secondaryTextColor)
             }
             .padding()
         }
