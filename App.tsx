@@ -295,6 +295,24 @@ const App: React.FC = () => {
                         <PollutantCard label="Ozon (O₃)" value={stationData.iaqi.o3?.v} unit="ppb" description={t.o3Desc} />
                         <PollutantCard label="Azot (NO₂)" value={stationData.iaqi.no2?.v} unit="ppb" description={t.no2Desc} />
                       </div>
+                      <div className="flex flex-wrap gap-3 text-[8px] font-bold">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-emerald-200"></div>
+                          <span className="text-slate-500">{lang === 'tr' ? 'Güvenli' : 'Safe'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-yellow-200"></div>
+                          <span className="text-slate-500">{lang === 'tr' ? 'Orta' : 'Moderate'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-orange-200"></div>
+                          <span className="text-slate-500">{lang === 'tr' ? 'Hassas' : 'Sensitive'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-red-200"></div>
+                          <span className="text-slate-500">{lang === 'tr' ? 'Sağlıksız' : 'Unhealthy'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden group">
