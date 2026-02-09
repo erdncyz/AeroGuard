@@ -244,8 +244,8 @@ const App: React.FC = () => {
 
 
         {stationData && (
-          <main className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-10">
-            <div className="lg:col-span-8 space-y-6">
+          <main className="max-w-5xl mx-auto space-y-6 pb-10">
+            <div className="space-y-6">
               <section className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100 relative overflow-hidden">
                 <div className={`absolute -top-10 -right-10 w-64 h-64 opacity-5 rounded-full ${aqiMeta?.color}`}></div>
 
@@ -281,6 +281,40 @@ const App: React.FC = () => {
                       <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
                         <p className="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest">{t.dominantPollutant}</p>
                         <p className="text-xs font-bold text-slate-700 uppercase tracking-tight truncate">{stationData.dominentpol}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
+                        <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">{t.live}</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <PollutantCard label="PM 2.5" value={stationData.iaqi.pm25?.v} unit="µg/m³" description={t.pm25Desc} />
+                        <PollutantCard label="PM 10" value={stationData.iaqi.pm10?.v} unit="µg/m³" description={t.pm10Desc} />
+                        <PollutantCard label="Ozon (O₃)" value={stationData.iaqi.o3?.v} unit="ppb" description={t.o3Desc} />
+                        <PollutantCard label="Azot (NO₂)" value={stationData.iaqi.no2?.v} unit="ppb" description={t.no2Desc} />
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:rotate-12 transition-transform duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-[0.25em] mb-6">{t.conditions}</h4>
+                      <div className="space-y-4">
+                        {[
+                          { label: t.temp, value: `${stationData.iaqi.t?.v ?? '—'}°C`, color: 'text-sky-400' },
+                          { label: t.hum, value: `${stationData.iaqi.h?.v ?? '—'}%`, color: 'text-emerald-400' },
+                          { label: t.press, value: `${stationData.iaqi.p?.v ?? '—'} hPa`, color: 'text-indigo-400' }
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{item.label}</span>
+                            <span className={`text-sm font-black ${item.color}`}>{item.value}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -501,43 +535,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </section>
-            </div>
-
-            <div className="lg:col-span-4 space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-3">
-                  <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
-                  <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">{t.live}</span>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 px-1 sm:px-0">
-                  <PollutantCard label="PM 2.5" value={stationData.iaqi.pm25?.v} unit="µg/m³" description={t.pm25Desc} />
-                  <PollutantCard label="PM 10" value={stationData.iaqi.pm10?.v} unit="µg/m³" description={t.pm10Desc} />
-                  <PollutantCard label="Ozon (O₃)" value={stationData.iaqi.o3?.v} unit="ppb" description={t.o3Desc} />
-                  <PollutantCard label="Azot (NO₂)" value={stationData.iaqi.no2?.v} unit="ppb" description={t.no2Desc} />
-                </div>
-
-                <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-4 opacity-5 transform group-hover:rotate-12 transition-transform duration-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-[8px] font-black text-slate-500 uppercase tracking-[0.25em] mb-6">{t.conditions}</h4>
-                  <div className="space-y-4">
-                    {[
-                      { label: t.temp, value: `${stationData.iaqi.t?.v ?? '—'}°C`, color: 'text-sky-400' },
-                      { label: t.hum, value: `${stationData.iaqi.h?.v ?? '—'}%`, color: 'text-emerald-400' },
-                      { label: t.press, value: `${stationData.iaqi.p?.v ?? '—'} hPa`, color: 'text-indigo-400' }
-                    ].map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{item.label}</span>
-                        <span className={`text-sm font-black ${item.color}`}>{item.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </main>
         )}
