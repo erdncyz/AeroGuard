@@ -17,13 +17,12 @@ const App: React.FC = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [mapMode, setMapMode] = useState<'station' | 'heatmap'>('station');
-  const [selectedCountry, setSelectedCountry] = useState('');
+  const [showHeatmapModal, setShowHeatmapModal] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('Turkey');
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
-  const [cleanestRegion, setCleanestRegion] = useState<SearchResult | null>(null);
-  const [mostPollutedRegion, setMostPollutedRegion] = useState<SearchResult | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
 
@@ -106,19 +105,50 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const loadCountryData = useCallback(async (country: string) => {
+    if (!country) {
+      setAvailableCities([]);
+      setAvailableDistricts([]);
+      return;
+    }
+
+    try {
+      const results = await waqiService.searchStations(country);
+
+      if (country === 'Turkey') {
+        // Turkiye icin hazir liste kullan
+        setAvailableCities(TURKEY_PROVINCES);
+      } else {
+        // Diger ulkeler icin API'den sehirleri cikar
+        const cities = results
+          .map(r => {
+            const parts = r.station.name.split(',');
+            return parts[1]?.trim() || parts[0]?.trim();
+          })
+          .filter((c, i, arr) => c && arr.indexOf(c) === i)
+          .sort();
+        setAvailableCities(cities);
+      }
+
+    } catch (err) {
+      console.error('Sehirler yuklenemedi:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadLocationData();
+    loadCountryData('Turkey');
 
-    // Loading timeout - 8 saniye sonra yine de UI'ı göster
+    // Loading timeout - 8 saniye sonra yine de UI'i goster
     const timeout = setTimeout(() => {
       if (loading) {
-        console.warn('Loading timeout - UI gösteriliyor');
+        console.warn('Loading timeout - UI gosteriliyor');
         setLoading(false);
       }
     }, 8000);
 
     return () => clearTimeout(timeout);
-  }, [loadLocationData]);
+  }, [loadLocationData, loadCountryData]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,29 +308,197 @@ const App: React.FC = () => {
                 </div>
               </section>
 
+              {/* Cascade Location Selection */}
+              <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900 tracking-tight">{t.browseWorld}</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Country Selection */}
+                  <div className="relative">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
+                    <select
+                      value={selectedCountry}
+                      onChange={async (e) => {
+                        const country = e.target.value;
+                        setSelectedCountry(country);
+                        setSelectedProvince('');
+                        setSelectedDistrict('');
+                        setAvailableCities([]);
+                        setAvailableDistricts([]);
+
+                        await loadCountryData(country);
+                      }}
+                      className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
+                    >
+                      <option value="">-</option>
+                      {COUNTRIES.map(country => <option key={country} value={country}>{country}</option>)}
+                    </select>
+                    <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Province Selection */}
+                  <div className="relative">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
+                    <select
+                      value={selectedProvince}
+                      onChange={async (e) => {
+                        const province = e.target.value;
+                        setSelectedProvince(province);
+                        setSelectedDistrict('');
+                        setAvailableDistricts([]);
+
+                        // Il secildiginde ilceleri yukle
+                        if (province) {
+                          try {
+                            const results = await waqiService.searchStations(province);
+                            // Sonuclardan benzersiz ilce isimlerini cikar
+                            const districts = results
+                              .map(r => {
+                                const parts = r.station.name.split(',');
+                                return parts[0]?.trim();
+                              })
+                              .filter((d, i, arr) => d && arr.indexOf(d) === i)
+                              .sort();
+                            setAvailableDistricts(districts);
+                          } catch (err) {
+                            console.error('Ilceler yuklenemedi:', err);
+                          }
+                        }
+                      }}
+                      disabled={!selectedCountry || availableCities.length === 0}
+                      className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">-</option>
+                      {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
+                    </select>
+                    <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* District Selection */}
+                  <div className="relative">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
+                    <select
+                      value={selectedDistrict}
+                      onChange={(e) => setSelectedDistrict(e.target.value)}
+                      disabled={!selectedProvince || availableDistricts.length === 0}
+                      className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <option value="">-</option>
+                      {availableDistricts.map(district => (
+                        <option key={district} value={district}>{district}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Search Button */}
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        const searchTerm = selectedDistrict || selectedProvince || selectedCountry;
+                        if (searchTerm) {
+                          handleProvinceSelect(searchTerm);
+                        }
+                      }}
+                      disabled={!selectedCountry}
+                      className="w-full py-4 px-6 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-sm font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest disabled:cursor-not-allowed"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      {lang === 'tr' ? 'ARA' : 'SEARCH'}
+                    </button>
+                  </div>
+
+                  {/* Search Loading Indicator */}
+                  {searchLoading && (
+                    <div className="col-span-full flex justify-center py-8">
+                      <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+
+                  {/* Searched Location Result */}
+                  {searchedStationData && !searchLoading && (
+                    <div className="col-span-full mt-6 animate-in slide-in-from-bottom duration-500">
+                      <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-xl border border-emerald-100 relative overflow-hidden">
+                        <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-[4rem] ${getAqiMetadata(searchedStationData.aqi).color}`}></div>
+
+                        <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-24 h-24 rounded-full border-4 border-white shadow-lg flex flex-col items-center justify-center ${getAqiMetadata(searchedStationData.aqi).color} text-white`}>
+                              <span className="text-3xl font-black tracking-tighter">{searchedStationData.aqi}</span>
+                              <span className="text-[7px] uppercase font-black tracking-widest opacity-80">AQI</span>
+                            </div>
+                          </div>
+
+                          <div className="flex-1 text-center md:text-left">
+                            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">{searchedStationData.city.name}</h3>
+                            <div className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 ${getAqiMetadata(searchedStationData.aqi).color.replace('bg-', 'bg-').replace('500', '100').replace('text-white', 'text-slate-700')} text-slate-600`}>
+                              {t.aqiLevels[getAqiMetadata(searchedStationData.aqi).key].label}
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                <p className="text-[7px] font-black text-slate-400 uppercase">PM2.5</p>
+                                <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm25?.v ?? '-'}</p>
+                              </div>
+                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                <p className="text-[7px] font-black text-slate-400 uppercase">PM10</p>
+                                <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm10?.v ?? '-'}</p>
+                              </div>
+                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                <p className="text-[7px] font-black text-slate-400 uppercase">TEMP</p>
+                                <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.t?.v ?? '-'}°</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
               <section className="bg-white rounded-[2.5rem] p-3 sm:p-4 shadow-sm border border-slate-100 overflow-hidden">
-                <div className="flex flex-col sm:flex-row items-center justify-between mb-4 px-3 py-2 gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 px-3 py-2 gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">{t.heatmap}</h3>
                   </div>
-                  <div className="bg-slate-100 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
-                    <button
-                      onClick={() => setMapMode('station')}
-                      className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'station' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
-                    >
-                      {t.stationView.toUpperCase()}
-                    </button>
-                    <button
-                      onClick={() => setMapMode('heatmap')}
-                      className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'heatmap' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
-                    >
-                      {t.heatmap.toUpperCase()}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setShowHeatmapModal(true)}
+                    className="w-full sm:w-auto px-4 py-2 text-[9px] font-black rounded-xl uppercase tracking-widest transition-all shadow-sm bg-emerald-500 text-white hover:bg-emerald-600"
+                  >
+                    {lang === 'tr' ? 'TAM EKRAN' : 'FULL SCREEN'}
+                  </button>
                 </div>
-                <div className="h-[450px] sm:h-[550px] w-full">
+                <div
+                  onClick={() => setShowHeatmapModal(true)}
+                  className="relative h-[320px] sm:h-[450px] w-full cursor-zoom-in"
+                >
                   <AirMap mode={mapMode} geo={stationData.city.geo} aqi={stationData.aqi} label={stationData.city.name} translations={t} />
+                  <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-700 shadow">
+                    {lang === 'tr' ? 'POPUP AC' : 'OPEN POPUP'}
+                  </div>
                 </div>
               </section>
             </div>
@@ -344,280 +542,7 @@ const App: React.FC = () => {
           </main>
         )}
 
-        {/* Cascade Location Selection - Moved Down */}
-        <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 mb-8 mt-8">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-sm font-black text-slate-900 tracking-tight">{t.browseWorld}</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Country Selection */}
-            <div className="relative">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectCountry}</label>
-              <select
-                value={selectedCountry}
-                onChange={async (e) => {
-                  const country = e.target.value;
-                  setSelectedCountry(country);
-                  setSelectedProvince('');
-                  setSelectedDistrict('');
-                  setAvailableCities([]);
-                  setAvailableDistricts([]);
-
-                  // Ülke seçildiğinde şehirleri yükle
-                  if (country) {
-                    try {
-                      const results = await waqiService.searchStations(country);
-
-                      if (country === 'Turkey') {
-                        // Türkiye için hazır liste kullan
-                        setAvailableCities(TURKEY_PROVINCES);
-                      } else {
-                        // Diğer ülkeler için API'den şehirleri çıkar
-                        const cities = results
-                          .map(r => {
-                            const parts = r.station.name.split(',');
-                            // İkinci parça genellikle şehir
-                            return parts[1]?.trim() || parts[0]?.trim();
-                          })
-                          .filter((c, i, arr) => c && arr.indexOf(c) === i)
-                          .sort();
-                        setAvailableCities(cities);
-                      }
-
-
-                      // En temiz ve en kirli bölgeleri bul
-                      if (results.length > 0) {
-                        // Geçerli AQI değeri olanları filtrele
-                        const validResults = results.filter(r => {
-                          const aqiNum = parseInt(r.aqi);
-                          return !isNaN(aqiNum) && aqiNum > 0;
-                        });
-
-                        if (validResults.length > 0) {
-                          // Sayısal olarak sırala
-                          const sorted = [...validResults].sort((a, b) => parseInt(a.aqi) - parseInt(b.aqi));
-                          setCleanestRegion(sorted[0]); // En düşük AQI = En temiz
-                          setMostPollutedRegion(sorted[sorted.length - 1]); // En yüksek AQI = En kirli
-                        }
-                      }
-                    } catch (err) {
-                      console.error('Şehirler yüklenemedi:', err);
-                    }
-                  } else {
-                    setCleanestRegion(null);
-                    setMostPollutedRegion(null);
-                  }
-                }}
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors"
-              >
-                <option value="">-</option>
-                {COUNTRIES.map(country => <option key={country} value={country}>{country}</option>)}
-              </select>
-              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Province Selection */}
-            <div className="relative">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
-              <select
-                value={selectedProvince}
-                onChange={async (e) => {
-                  const province = e.target.value;
-                  setSelectedProvince(province);
-                  setSelectedDistrict('');
-                  setAvailableDistricts([]);
-
-                  // İl seçildiğinde ilçeleri yükle
-                  if (province) {
-                    try {
-                      const results = await waqiService.searchStations(province);
-                      // Sonuçlardan benzersiz ilçe isimlerini çıkar
-                      const districts = results
-                        .map(r => {
-                          const parts = r.station.name.split(',');
-                          return parts[0]?.trim();
-                        })
-                        .filter((d, i, arr) => d && arr.indexOf(d) === i)
-                        .sort();
-                      setAvailableDistricts(districts);
-                    } catch (err) {
-                      console.error('İlçeler yüklenemedi:', err);
-                    }
-                  }
-                }}
-                disabled={!selectedCountry || availableCities.length === 0}
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">-</option>
-                {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
-              </select>
-              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* District Selection */}
-            <div className="relative">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
-              <select
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                disabled={!selectedProvince || availableDistricts.length === 0}
-                className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">-</option>
-                {availableDistricts.map(district => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Search Button */}
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  const searchTerm = selectedDistrict || selectedProvince || selectedCountry;
-                  if (searchTerm) {
-                    handleProvinceSelect(searchTerm);
-                  }
-                }}
-                disabled={!selectedCountry}
-                className="w-full py-4 px-6 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-sm font-black rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest disabled:cursor-not-allowed"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                {lang === 'tr' ? 'ARA' : 'SEARCH'}
-              </button>
-            </div>
-
-            {/* Warning Message */}
-
-
-            {/* Search Loading Indicator */}
-            {searchLoading && (
-              <div className="col-span-full flex justify-center py-8">
-                <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
-
-            {/* Searched Location Result */}
-            {searchedStationData && !searchLoading && (
-              <div className="col-span-full mt-6 animate-in slide-in-from-bottom duration-500">
-                <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-xl border border-emerald-100 relative overflow-hidden">
-                  <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-[4rem] ${getAqiMetadata(searchedStationData.aqi).color}`}></div>
-
-                  <div className="flex flex-col md:flex-row gap-6 items-center relative z-10">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-24 h-24 rounded-full border-4 border-white shadow-lg flex flex-col items-center justify-center ${getAqiMetadata(searchedStationData.aqi).color} text-white`}>
-                        <span className="text-3xl font-black tracking-tighter">{searchedStationData.aqi}</span>
-                        <span className="text-[7px] uppercase font-black tracking-widest opacity-80">AQI</span>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 text-center md:text-left">
-                      <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">{searchedStationData.city.name}</h3>
-                      <div className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 ${getAqiMetadata(searchedStationData.aqi).color.replace('bg-', 'bg-').replace('500', '100').replace('text-white', 'text-slate-700')} text-slate-600`}>
-                        {t.aqiLevels[getAqiMetadata(searchedStationData.aqi).key].label}
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          <p className="text-[7px] font-black text-slate-400 uppercase">PM2.5</p>
-                          <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm25?.v ?? '-'}</p>
-                        </div>
-                        <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          <p className="text-[7px] font-black text-slate-400 uppercase">PM10</p>
-                          <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm10?.v ?? '-'}</p>
-                        </div>
-                        <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          <p className="text-[7px] font-black text-slate-400 uppercase">TEMP</p>
-                          <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.t?.v ?? '-'}°</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Cleanest & Most Polluted Regions (Moved) */}
-
-            {/* Cleanest & Most Polluted Regions (Moved) */}
-            {(cleanestRegion || mostPollutedRegion) && (
-              <div className="col-span-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                {/* Cleanest Region */}
-                {cleanestRegion && (
-                  <div
-                    onClick={() => selectStation(cleanestRegion.uid)}
-                    className="bg-white rounded-2xl p-4 border-2 border-emerald-50 cursor-pointer hover:border-emerald-200 hover:shadow-md transition-all group"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-emerald-100 p-1.5 rounded-lg text-emerald-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </span>
-                          <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{t.cleanestRegion}</span>
-                        </div>
-                        <h4 className="text-sm font-black text-slate-800 group-hover:text-emerald-600 transition-colors">{cleanestRegion.station.name}</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 font-bold">{cleanestRegion.time.stime}</p>
-                      </div>
-                      <div className={`text-3xl font-black ${getAqiMetadata(parseInt(cleanestRegion.aqi)).color.replace('bg-', 'text-')}`}>
-                        {cleanestRegion.aqi}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Most Polluted Region */}
-                {mostPollutedRegion && (
-                  <div
-                    onClick={() => selectStation(mostPollutedRegion.uid)}
-                    className="bg-white rounded-2xl p-4 border-2 border-red-50 cursor-pointer hover:border-red-200 hover:shadow-md transition-all group"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-red-100 p-1.5 rounded-lg text-red-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                          </span>
-                          <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">{t.mostPolluted}</span>
-                        </div>
-                        <h4 className="text-sm font-black text-slate-800 group-hover:text-red-600 transition-colors">{mostPollutedRegion.station.name}</h4>
-                        <p className="text-[10px] text-slate-400 mt-1 font-bold">{mostPollutedRegion.time.stime}</p>
-                      </div>
-                      <div className={`text-3xl font-black ${getAqiMetadata(parseInt(mostPollutedRegion.aqi)).color.replace('bg-', 'text-')}`}>
-                        {mostPollutedRegion.aqi}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
+        
 
         {/* Educational Section */}
         <section id="educational-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-20">
@@ -772,6 +697,46 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <button onClick={() => setShowDownloadModal(false)} className="w-full mt-8 py-4.5 bg-slate-900 text-white font-black rounded-2xl uppercase text-[10px] tracking-widest active:scale-95 transition-transform">{t.close}</button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        {
+          showHeatmapModal && (
+            <div className="fixed inset-0 z-[1000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] w-full max-w-5xl shadow-2xl relative animate-in slide-in-from-bottom duration-300 overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-5 sm:p-6 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-[0.2em]">{t.heatmap}</h3>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <div className="bg-slate-100 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
+                      <button
+                        onClick={() => setMapMode('station')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'station' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                      >
+                        {t.stationView.toUpperCase()}
+                      </button>
+                      <button
+                        onClick={() => setMapMode('heatmap')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-[9px] font-black rounded-lg transition-all ${mapMode === 'heatmap' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400'}`}
+                      >
+                        {t.heatmap.toUpperCase()}
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setShowHeatmapModal(false)}
+                      className="w-full sm:w-auto px-4 py-2 text-[9px] font-black rounded-xl uppercase tracking-widest transition-all shadow-sm bg-slate-900 text-white hover:bg-black"
+                    >
+                      {lang === 'tr' ? 'KAPAT' : 'CLOSE'}
+                    </button>
+                  </div>
+                </div>
+                <div className="h-[60vh] sm:h-[70vh] w-full">
+                  <AirMap mode={mapMode} geo={stationData?.city.geo} aqi={stationData?.aqi} label={stationData?.city.name} translations={t} />
                 </div>
               </div>
             </div>
