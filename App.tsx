@@ -662,18 +662,21 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        <footer className="mt-10 py-8 border-t border-slate-200/60 text-center">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            {t.developedBy}{' '}
+        <footer className="mt-10 py-10 border-t border-slate-200/60 text-center">
+          <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-emerald-50/70 border border-emerald-100 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.25em]">
+              {t.developedBy}
+            </span>
             <a
               href="https://erdincyilmaz.netlify.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-600 hover:text-emerald-500 transition-colors duration-200 underline decoration-slate-300 decoration-2 underline-offset-4"
+              className="text-sm sm:text-base font-black text-slate-900 hover:text-emerald-600 transition-colors duration-200"
             >
               Erdinç Yılmaz
             </a>
-          </p>
+          </div>
         </footer>
 
         {
