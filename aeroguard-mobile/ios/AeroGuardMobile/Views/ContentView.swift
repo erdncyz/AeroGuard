@@ -3,9 +3,10 @@ import GoogleMobileAds
 
 struct ContentView: View {
     @StateObject private var viewModel = WebViewModel()
+    @State private var selectedTab = 0
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             // Tab 1: Air Quality (WebView)
             VStack(spacing: 0) {
                 ZStack {
@@ -29,6 +30,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Hava Kalitesi", systemImage: "wind")
             }
+            .tag(0)
 
             // Tab 2: Weather (Native WeatherKit)
             VStack(spacing: 0) {
@@ -38,6 +40,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Hava Durumu", systemImage: "cloud.sun.fill")
             }
+            .tag(1)
 
             // Tab 3: Widget Guide (Native)
             VStack(spacing: 0) {
@@ -47,6 +50,7 @@ struct ContentView: View {
             .tabItem {
                 Label("Widget", systemImage: "apps.iphone")
             }
+            .tag(2)
 
             // Tab 4: Settings (Native)
             VStack(spacing: 0) {
@@ -56,8 +60,26 @@ struct ContentView: View {
             .tabItem {
                 Label("Ayarlar", systemImage: "gearshape.fill")
             }
+            .tag(3)
         }
         .accentColor(.blue)  // Brand color
+        .onAppear {
+            AnalyticsManager.shared.trackTabSelected(.airQuality)
+        }
+        .onChange(of: selectedTab) { newValue in
+            switch newValue {
+            case 0:
+                AnalyticsManager.shared.trackTabSelected(.airQuality)
+            case 1:
+                AnalyticsManager.shared.trackTabSelected(.weather)
+            case 2:
+                AnalyticsManager.shared.trackTabSelected(.widget)
+            case 3:
+                AnalyticsManager.shared.trackTabSelected(.settings)
+            default:
+                break
+            }
+        }
     }
 }
 

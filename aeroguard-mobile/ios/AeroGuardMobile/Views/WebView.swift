@@ -190,12 +190,17 @@ struct WebView: UIViewRepresentable {
                     if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
                         // Always update AQI
                         userDefaults.set(aqi, forKey: "currentAQI")
+                        let analyticsCity = userDefaults.string(forKey: "currentLocation")
+                            ?? "Bilinmeyen Konum"
+                        AnalyticsManager.shared.trackAQIUpdated(aqi: aqi, city: analyticsCity)
 
                         // Only update location if we don't have a GPS-based location yet
                         let existingLocation = userDefaults.string(forKey: "currentLocation")
                         if existingLocation == nil || existingLocation == "Bilinmeyen Konum" {
                             userDefaults.set(webLocation, forKey: "currentLocation")
                             print("✅ DEBUG: Saved location from web: \(webLocation)")
+                            AnalyticsManager.shared.trackCityUpdated(city: webLocation, source: "web")
+                            NotificationCenter.default.post(name: .aeroGuardCityUpdated, object: nil)
                         } else {
                             print(
                                 "ℹ️ DEBUG: Keeping GPS location: \(existingLocation ?? ""), ignoring web location: \(webLocation)"
@@ -215,6 +220,7 @@ struct WebView: UIViewRepresentable {
         func locationManager(
             _ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus
         ) {
+            AnalyticsManager.shared.trackLocationPermission(status: status)
             if status == .authorizedWhenInUse || status == .authorizedAlways {
                 manager.requestLocation()
             } else if status == .denied {
@@ -250,6 +256,8 @@ struct WebView: UIViewRepresentable {
                         userDefaults.set(cityName, forKey: "currentLocation")
                         userDefaults.synchronize()
                         print("📍 DEBUG: Saved location from GPS: \(cityName)")
+                        AnalyticsManager.shared.trackCityUpdated(city: cityName, source: "gps")
+                        NotificationCenter.default.post(name: .aeroGuardCityUpdated, object: nil)
                         WidgetCenter.shared.reloadAllTimelines()
                     }
                 }

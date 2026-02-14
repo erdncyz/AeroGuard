@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyAD9W45rXCsxlZNUO5VqxWCfqTohCBGdEg</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1077470687469</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.aeroguardios.app</string>
+	<key>PROJECT_ID</key>
+	<string>aeroguard-f2dc5</string>
+	<key>STORAGE_BUCKET</key>
+	<string>aeroguard-f2dc5.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1077470687469:ios:46a0b43c9f4fe188ee5ce4</string>
+</dict>
+</plist>

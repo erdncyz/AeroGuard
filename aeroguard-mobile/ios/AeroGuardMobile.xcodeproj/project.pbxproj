@@ -10,8 +10,13 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		5D7C3FD1DD6C0C8EE2FBEEAC /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		AB0000000000000000000011 /* AnalyticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000010 /* AnalyticsManager.swift */; };
 		AD0000000000000000000003 /* AdManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000001 /* AdManager.swift */; };
 		AD0000000000000000000004 /* BannerAdView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD0000000000000000000002 /* BannerAdView.swift */; };
+		BA5015F42F3FEAFE001A03F5 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = BA5015F32F3FEAFE001A03F5 /* GoogleService-Info.plist */; };
+		BA5016132F3FEDEF001A03F5 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = BA5016122F3FEDEF001A03F5 /* FirebaseAnalytics */; };
+		BA5016152F3FEDEF001A03F5 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = BA5016142F3FEDEF001A03F5 /* FirebaseCore */; };
+		BA5016172F3FEDEF001A03F5 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = BA5016162F3FEDEF001A03F5 /* FirebaseMessaging */; };
 		BA713A582F103E9100DF5AD1 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA713A572F103E9100DF5AD1 /* WidgetKit.framework */; };
 		BA713A5A2F103E9100DF5AD1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BA713A592F103E9100DF5AD1 /* SwiftUI.framework */; };
 		BA713A6B2F103E9200DF5AD1 /* AeroGuardWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BA713A552F103E9100DF5AD1 /* AeroGuardWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -57,8 +62,10 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = AeroGuardMobile/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = AeroGuardMobile/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = AeroGuardMobile/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		AB0000000000000000000010 /* AnalyticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AnalyticsManager.swift; path = AeroGuardMobile/Constants/AnalyticsManager.swift; sourceTree = "<group>"; };
 		AD0000000000000000000001 /* AdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AdManager.swift; path = AeroGuardMobile/Ads/AdManager.swift; sourceTree = "<group>"; };
 		AD0000000000000000000002 /* BannerAdView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BannerAdView.swift; path = AeroGuardMobile/Ads/BannerAdView.swift; sourceTree = "<group>"; };
+		BA5015F32F3FEAFE001A03F5 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		BA713A552F103E9100DF5AD1 /* AeroGuardWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AeroGuardWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BA713A572F103E9100DF5AD1 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		BA713A592F103E9100DF5AD1 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -94,6 +101,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA5016172F3FEDEF001A03F5 /* FirebaseMessaging in Frameworks */,
+				BA5016132F3FEDEF001A03F5 /* FirebaseAnalytics in Frameworks */,
+				BA5016152F3FEDEF001A03F5 /* FirebaseCore in Frameworks */,
 				BAE33D152F1D31A600F09813 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -135,6 +145,7 @@
 				BA713A5B2F103E9100DF5AD1 /* AeroGuardWidget */,
 				BA713A562F103E9100DF5AD1 /* Frameworks */,
 				83CBBA001A601CBA00E9B192 /* Products */,
+				BA5015F32F3FEAFE001A03F5 /* GoogleService-Info.plist */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -174,6 +185,7 @@
 			isa = PBXGroup;
 			children = (
 				CF6395D7293B3C1800B1A7E1 /* AppConfig.swift */,
+				AB0000000000000000000010 /* AnalyticsManager.swift */,
 			);
 			name = Constants;
 			sourceTree = "<group>";
@@ -278,6 +290,7 @@
 			mainGroup = 83CBB9F61A601CBA00E9B192;
 			packageReferences = (
 				BAE33D132F1D31A600F09813 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				BA5016112F3FEDEF001A03F5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			productRefGroup = 83CBBA001A601CBA00E9B192 /* Products */;
 			projectDirPath = "";
@@ -295,6 +308,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
+				BA5015F42F3FEAFE001A03F5 /* GoogleService-Info.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				5D7C3FD1DD6C0C8EE2FBEEAC /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -318,6 +332,7 @@
 				CF6395D4293B3C1800B1A7E1 /* ContentView.swift in Sources */,
 				CF6395D6293B3C1800B1A7E1 /* WebView.swift in Sources */,
 				CF6395D8293B3C1800B1A7E1 /* AppConfig.swift in Sources */,
+				AB0000000000000000000011 /* AnalyticsManager.swift in Sources */,
 				CF6395DA293B3C1800B1A7E1 /* WebViewModel.swift in Sources */,
 				CF6395DC293B3C1800B1A7E1 /* SettingsView.swift in Sources */,
 				CF6395DE293B3C1800B1A7E1 /* WidgetGuideView.swift in Sources */,
@@ -352,7 +367,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = AeroGuardMobile/AeroGuardMobile.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = AeroGuardMobile/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
@@ -361,7 +376,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -381,7 +396,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = AeroGuardMobile/AeroGuardMobile.entitlements;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = AeroGuardMobile/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
@@ -389,7 +404,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -460,7 +475,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SDKROOT)/usr/lib/swift\"",
-					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -524,7 +538,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"\"$(SDKROOT)/usr/lib/swift\"",
-					"\"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)\"",
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -551,7 +564,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = AeroGuardWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -598,7 +611,7 @@
 				CODE_SIGN_ENTITLEMENTS = AeroGuardWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -660,6 +673,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		BA5016112F3FEDEF001A03F5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.9.0;
+			};
+		};
 		BAE33D132F1D31A600F09813 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
@@ -671,6 +692,21 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BA5016122F3FEDEF001A03F5 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA5016112F3FEDEF001A03F5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		BA5016142F3FEDEF001A03F5 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA5016112F3FEDEF001A03F5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		BA5016162F3FEDEF001A03F5 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA5016112F3FEDEF001A03F5 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
 		BAE33D142F1D31A600F09813 /* GoogleMobileAds */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BAE33D132F1D31A600F09813 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;

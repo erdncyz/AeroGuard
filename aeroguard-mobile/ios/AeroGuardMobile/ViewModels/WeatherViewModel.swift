@@ -65,8 +65,14 @@ class WeatherViewModel: NSObject, ObservableObject {
                     locationName = "Bilinmeyen Konum"
                 }
             }
+
+            AnalyticsManager.shared.trackWeatherLoaded(
+                city: locationName,
+                temperatureC: weather.currentWeather.temperature.value
+            )
         } catch {
             errorMessage = "Hava durumu alınamadı: \(error.localizedDescription)"
+            AnalyticsManager.shared.trackWeatherError(error.localizedDescription)
         }
 
         isLoading = false

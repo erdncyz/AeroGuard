@@ -7,6 +7,10 @@ target 'AeroGuardMobile' do
 
   # Google Mobile Ads SDK
   pod 'Google-Mobile-Ads-SDK'
+  # Firebase Push Notifications
+  pod 'Firebase/Core'
+  pod 'Firebase/Messaging'
+  pod 'Firebase/Analytics'
 
 end
 
