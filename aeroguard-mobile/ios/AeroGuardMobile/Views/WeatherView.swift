@@ -43,16 +43,42 @@ struct WeatherView: View {
                         VStack(spacing: 0) {
                             // Hero Section with Location and Main Weather
                             VStack(spacing: 16) {
-                                // Location with icon
-                                HStack(spacing: 8) {
-                                    Image(systemName: "location.fill")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(.blue)
+                                // Location summary
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "location.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(.blue)
+                                        Text("Bölge")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondaryTextColor)
+                                    }
+
                                     Text(viewModel.locationName)
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
+                                        .font(.title2)
+                                        .fontWeight(.bold)
                                         .foregroundColor(.darkTextColor)
+
+                                    if !viewModel.locationDetail.isEmpty {
+                                        Text(viewModel.locationDetail)
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondaryTextColor)
+                                    }
+
+                                    HStack(spacing: 12) {
+                                        Label("Son güncelleme: \(viewModel.lastUpdatedText)", systemImage: "clock")
+                                        Label(viewModel.coordinateText, systemImage: "scope")
+                                    }
+                                    .font(.caption)
+                                    .foregroundColor(.secondaryTextColor)
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(Color.blue.opacity(0.06))
+                                )
+                                .padding(.horizontal, 20)
                                 .padding(.top, 20)
 
                                 // Main temperature with large display
@@ -254,6 +280,16 @@ struct WeatherView: View {
             }
             .navigationTitle("Hava Durumu")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        viewModel.refreshWeather()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .accessibilityLabel("Hava durumunu yenile")
+                }
+            }
         }
     }
 

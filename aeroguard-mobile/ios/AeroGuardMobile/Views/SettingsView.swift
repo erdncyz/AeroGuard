@@ -7,6 +7,14 @@ extension Color {
 }
 
 struct SettingsView: View {
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "-"
+    }
+
     var body: some View {
         NavigationView {
             ZStack {
@@ -37,7 +45,7 @@ struct SettingsView: View {
                                 Text("AeroGuard")
                                     .font(.headline)
                                     .foregroundColor(.settingsDarkText)
-                                Text("Sürüm 1.0.0")
+                                Text("Sürüm \(appVersion) (\(buildNumber))")
                                     .font(.subheadline)
                                     .foregroundColor(.settingsSecondaryText)
                             }

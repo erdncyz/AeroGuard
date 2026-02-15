@@ -10,6 +10,9 @@ class WeatherViewModel: NSObject, ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var locationName: String = "Konum alınıyor..."
+    @Published var locationDetail: String = ""
+    @Published var coordinateText: String = ""
+    @Published var lastUpdatedAt: Date?
 
     private let weatherService = WeatherService.shared
     private let locationManager = CLLocationManager()
@@ -29,6 +32,15 @@ class WeatherViewModel: NSObject, ObservableObject {
             locationManager.requestWhenInUseAuthorization()
         } else if status == .authorizedWhenInUse || status == .authorizedAlways {
             locationManager.requestLocation()
+        }
+    }
+
+    func refreshWeather() {
+        let status = locationManager.authorizationStatus
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            locationManager.requestLocation()
+        } else if status == .notDetermined {
+            locationManager.requestWhenInUseAuthorization()
         }
     }
 
@@ -57,14 +69,32 @@ class WeatherViewModel: NSObject, ObservableObject {
             // Get location name
             let geocoder = CLGeocoder()
             if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
-                if let city = placemark.locality {
+                let district = placemark.subLocality ?? placemark.subAdministrativeArea
+                let city = placemark.locality ?? placemark.administrativeArea
+                let country = placemark.country
+
+                if let district, let city {
+                    locationName = "\(district), \(city)"
+                } else if let city {
                     locationName = city
-                } else if let area = placemark.administrativeArea {
-                    locationName = area
                 } else {
                     locationName = "Bilinmeyen Konum"
                 }
+
+                let locationParts = [district, city, country].compactMap { $0 }
+                let dedupedParts = Array(NSOrderedSet(array: locationParts)) as? [String] ?? locationParts
+                locationDetail = dedupedParts.joined(separator: " • ")
+            } else {
+                locationName = "Bilinmeyen Konum"
+                locationDetail = ""
             }
+
+            coordinateText = String(
+                format: "%.4f, %.4f",
+                location.coordinate.latitude,
+                location.coordinate.longitude
+            )
+            lastUpdatedAt = Date()
 
             AnalyticsManager.shared.trackWeatherLoaded(
                 city: locationName,
@@ -76,6 +106,16 @@ class WeatherViewModel: NSObject, ObservableObject {
         }
 
         isLoading = false
+    }
+}
+
+extension WeatherViewModel {
+    var lastUpdatedText: String {
+        guard let lastUpdatedAt else { return "-" }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "tr_TR")
+        formatter.dateFormat = "d MMM HH:mm"
+        return formatter.string(from: lastUpdatedAt)
     }
 }
 

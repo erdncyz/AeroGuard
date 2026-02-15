@@ -28,6 +28,7 @@ struct AeroGuardApp: App {
             ContentView()
                 .environmentObject(appLifecycleObserver)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    UIApplication.shared.applicationIconBadgeNumber = 0
                     // Request ATT permission when app becomes active
                     requestTrackingPermission()
                 }
