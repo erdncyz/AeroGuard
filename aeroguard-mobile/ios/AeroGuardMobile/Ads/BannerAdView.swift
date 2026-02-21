@@ -4,13 +4,21 @@ import GoogleMobileAds
 /// Coordinator to handle banner ad delegate callbacks
 class BannerAdCoordinator: NSObject, BannerViewDelegate {
     var onAdLoaded: (Bool) -> Void
+    private var retryCount = 0
+    private let maxRetries = 5
+    private weak var bannerView: BannerView?
     
     init(onAdLoaded: @escaping (Bool) -> Void) {
         self.onAdLoaded = onAdLoaded
     }
     
+    func setBannerView(_ banner: BannerView) {
+        self.bannerView = banner
+    }
+    
     func bannerViewDidReceiveAd(_ bannerView: BannerView) {
         print("Banner ad loaded successfully")
+        retryCount = 0
         DispatchQueue.main.async {
             self.onAdLoaded(true)
         }
@@ -20,6 +28,17 @@ class BannerAdCoordinator: NSObject, BannerViewDelegate {
         print("Banner ad failed to load: \(error.localizedDescription)")
         DispatchQueue.main.async {
             self.onAdLoaded(false)
+        }
+        
+        // Retry with exponential backoff
+        if retryCount < maxRetries {
+            retryCount += 1
+            let delay = Double(retryCount) * 30.0 // 30s, 60s, 90s, 120s, 150s
+            print("Banner ad retry \(retryCount)/\(maxRetries) in \(delay)s")
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, let banner = self.bannerView else { return }
+                banner.load(Request())
+            }
         }
     }
     
@@ -42,9 +61,10 @@ class BannerContainerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configure(adUnitID: String, delegate: BannerViewDelegate) {
+    func configure(adUnitID: String, delegate: BannerAdCoordinator) {
         bannerView.adUnitID = adUnitID
         bannerView.delegate = delegate
+        delegate.setBannerView(bannerView)
         
         // Get root view controller
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
