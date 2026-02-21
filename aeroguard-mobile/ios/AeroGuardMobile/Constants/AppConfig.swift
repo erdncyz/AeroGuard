@@ -7,7 +7,7 @@ struct AppConfig {
     // MARK: - Google AdMob Configuration
     struct Ads {
         static let appId = "ca-app-pub-1271900948473545~6671318076"
-        static let bannerAdUnitId = "ca-app-pub-1271900948473545/9419742674"
+        static let bannerAdUnitId = "ca-app-pub-1271900948473545/1772526176"
         static let appOpenAdUnitId = "ca-app-pub-1271900948473545/7764907893"
         
         static var activeBannerAdUnitId: String {
