@@ -18,7 +18,4 @@ struct AppConfig {
             appOpenAdUnitId
         }
     }
-            isSimulator ? testAppOpenAdUnitId : appOpenAdUnitId
-        }
-    }
 }
