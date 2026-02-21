@@ -13,6 +13,7 @@ import FirebaseMessaging
 struct AeroGuardApp: App {
     @StateObject private var appLifecycleObserver = AppLifecycleObserver()
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var hasRequestedATT = false
 
     init() {
         #if canImport(FirebaseCore)
@@ -29,8 +30,11 @@ struct AeroGuardApp: App {
                 .environmentObject(appLifecycleObserver)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     UIApplication.shared.applicationIconBadgeNumber = 0
-                    // Request ATT permission when app becomes active
-                    requestTrackingPermission()
+                    // Request ATT permission only once
+                    if !hasRequestedATT {
+                        hasRequestedATT = true
+                        requestTrackingPermission()
+                    }
                 }
         }
     }

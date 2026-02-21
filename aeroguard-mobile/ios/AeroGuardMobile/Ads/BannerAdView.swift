@@ -118,37 +118,23 @@ struct AdaptiveBannerAdView: View {
     }
     
     var body: some View {
-        Group {
-            if isAdLoaded {
-                // Show banner only when ad is loaded
-                BannerAdView(onAdLoaded: { loaded in
-                    isAdLoaded = loaded
-                    if loaded {
-                        // Calculate adaptive banner height when ad loads
-                        let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
-                        bannerHeight = adaptiveSize.size.height
-                    }
-                })
-                .frame(width: screenWidth, height: bannerHeight)
-                .onAppear {
-                    // Calculate adaptive banner height
-                    let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
-                    bannerHeight = adaptiveSize.size.height
-                }
-            } else {
-                // Try to load ad in background (takes zero space)
-                BannerAdView(onAdLoaded: { loaded in
-                    isAdLoaded = loaded
-                    if loaded {
-                        // Calculate adaptive banner height when ad loads
-                        let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
-                        bannerHeight = adaptiveSize.size.height
-                    }
-                })
-                .frame(width: 0, height: 0)
-                .opacity(0)
-                .allowsHitTesting(false)
+        // Always render the BannerAdView with proper dimensions.
+        // Using a single view instance prevents SwiftUI from recreating
+        // the banner on state change. AdMob requires a non-zero frame to load ads.
+        BannerAdView(onAdLoaded: { loaded in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isAdLoaded = loaded
             }
+            if loaded {
+                let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
+                bannerHeight = adaptiveSize.size.height
+            }
+        })
+        .frame(width: screenWidth, height: isAdLoaded ? bannerHeight : 0)
+        .clipped()
+        .onAppear {
+            let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
+            bannerHeight = adaptiveSize.size.height
         }
     }
 }

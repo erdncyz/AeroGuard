@@ -8,6 +8,7 @@ class AdManager: NSObject, ObservableObject {
     
     @Published var isAdReady = false
     @Published var appOpenAdLoaded = false
+    @Published var isSDKInitialized = false
     
     private var appOpenAd: AppOpenAd?
     private var loadTime: Date?
@@ -20,8 +21,12 @@ class AdManager: NSObject, ObservableObject {
     
     /// Initialize Google Mobile Ads SDK
     func initialize() {
-        MobileAds.shared.start { status in
-            print("AdMob SDK initialized")
+        MobileAds.shared.start { [weak self] status in
+            guard let self = self else { return }
+            print("AdMob SDK initialized with status: \(status.adapterStatusesByClassName)")
+            DispatchQueue.main.async {
+                self.isSDKInitialized = true
+            }
             // Load App Open Ad after initialization
             self.loadAppOpenAd()
         }
