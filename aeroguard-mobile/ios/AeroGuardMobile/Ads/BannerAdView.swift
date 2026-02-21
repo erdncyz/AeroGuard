@@ -10,34 +10,72 @@ class BannerAdCoordinator: NSObject, BannerViewDelegate {
     }
     
     func bannerViewDidReceiveAd(_ bannerView: BannerView) {
-        // Ad loaded successfully
+        print("Banner ad loaded successfully")
         DispatchQueue.main.async {
             self.onAdLoaded(true)
         }
     }
     
     func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
-        // Ad failed to load
         print("Banner ad failed to load: \(error.localizedDescription)")
         DispatchQueue.main.async {
             self.onAdLoaded(false)
         }
     }
     
-    func bannerViewDidRecordImpression(_ bannerView: BannerView) {
-        // Ad impression recorded
+    func bannerViewDidRecordImpression(_ bannerView: BannerView) {}
+    func bannerViewWillPresentScreen(_ bannerView: BannerView) {}
+    func bannerViewWillDismissScreen(_ bannerView: BannerView) {}
+    func bannerViewDidDismissScreen(_ bannerView: BannerView) {}
+}
+
+/// UIView wrapper that keeps BannerView at proper dimensions regardless of SwiftUI frame
+class BannerContainerView: UIView {
+    let bannerView = BannerView()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        clipsToBounds = true
     }
     
-    func bannerViewWillPresentScreen(_ bannerView: BannerView) {
-        // Ad will present full screen
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
-    func bannerViewWillDismissScreen(_ bannerView: BannerView) {
-        // Ad will dismiss full screen
+    func configure(adUnitID: String, delegate: BannerViewDelegate) {
+        bannerView.adUnitID = adUnitID
+        bannerView.delegate = delegate
+        
+        // Get root view controller
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            bannerView.rootViewController = rootViewController
+        }
+        
+        // Set adaptive banner size using the SCREEN width (not the container width)
+        let screenWidth = UIScreen.main.bounds.width
+        bannerView.adSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
+        
+        // Use explicit frame (not auto layout) so SwiftUI constraints don't affect banner size
+        bannerView.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: screenWidth,
+            height: bannerView.adSize.size.height
+        )
+        
+        addSubview(bannerView)
+        
+        print("Banner configured: size=\(bannerView.adSize.size), adUnitID=\(adUnitID)")
+        
+        // Load the ad
+        bannerView.load(Request())
     }
     
-    func bannerViewDidDismissScreen(_ bannerView: BannerView) {
-        // Ad dismissed full screen
+    override var intrinsicContentSize: CGSize {
+        let screenWidth = UIScreen.main.bounds.width
+        let adSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
+        return adSize.size
     }
 }
 
@@ -55,33 +93,19 @@ struct BannerAdView: UIViewRepresentable {
         BannerAdCoordinator(onAdLoaded: onAdLoaded)
     }
     
-    func makeUIView(context: Context) -> BannerView {
-        let banner = BannerView()
-        banner.adUnitID = adUnitID
-        banner.delegate = context.coordinator
-        banner.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Get the root view controller
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            banner.rootViewController = rootViewController
-        }
-        
-        // Set adaptive banner size
-        let frame = UIScreen.main.bounds
-        let viewWidth = frame.size.width
-        banner.adSize = currentOrientationAnchoredAdaptiveBanner(width: viewWidth)
-        
-        // Load the ad
-        let request = Request()
-        banner.load(request)
-        
-        return banner
+    func makeUIView(context: Context) -> BannerContainerView {
+        let container = BannerContainerView()
+        container.configure(adUnitID: adUnitID, delegate: context.coordinator)
+        return container
     }
     
-    func updateUIView(_ uiView: BannerView, context: Context) {
-        // Update coordinator's callback
+    func updateUIView(_ uiView: BannerContainerView, context: Context) {
         context.coordinator.onAdLoaded = onAdLoaded
+        // Update root view controller if needed
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            uiView.bannerView.rootViewController = rootViewController
+        }
     }
 }
 
@@ -100,9 +124,7 @@ struct BannerAdContainerView<Content: View>: View {
             content
             
             if showAd {
-                BannerAdView()
-                    .frame(height: 50)
-                    .background(Color(UIColor.systemBackground))
+                AdaptiveBannerAdView()
             }
         }
     }
@@ -110,7 +132,7 @@ struct BannerAdContainerView<Content: View>: View {
 
 /// Adaptive banner height based on device
 struct AdaptiveBannerAdView: View {
-    @State private var bannerHeight: CGFloat = 50
+    @State private var bannerHeight: CGFloat = 60
     @State private var isAdLoaded: Bool = false
     
     private var screenWidth: CGFloat {
@@ -118,19 +140,15 @@ struct AdaptiveBannerAdView: View {
     }
     
     var body: some View {
-        // Always render the BannerAdView with proper dimensions.
-        // Using a single view instance prevents SwiftUI from recreating
-        // the banner on state change. AdMob requires a non-zero frame to load ads.
+        // Always give the BannerAdView full dimensions so AdMob gets a valid frame.
+        // The outer container clips to 0 height until the ad loads.
         BannerAdView(onAdLoaded: { loaded in
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.easeInOut(duration: 0.25)) {
                 isAdLoaded = loaded
             }
-            if loaded {
-                let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
-                bannerHeight = adaptiveSize.size.height
-            }
         })
-        .frame(width: screenWidth, height: isAdLoaded ? bannerHeight : 0)
+        .frame(width: screenWidth, height: bannerHeight)
+        .frame(maxHeight: isAdLoaded ? bannerHeight : 0)
         .clipped()
         .onAppear {
             let adaptiveSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
