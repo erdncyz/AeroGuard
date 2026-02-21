@@ -51,6 +51,7 @@ class BannerAdCoordinator: NSObject, BannerViewDelegate {
 /// UIView wrapper that keeps BannerView at proper dimensions regardless of SwiftUI frame
 class BannerContainerView: UIView {
     let bannerView = BannerView()
+    private var hasLoadedInitialRequest = false
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -65,17 +66,11 @@ class BannerContainerView: UIView {
         bannerView.adUnitID = adUnitID
         bannerView.delegate = delegate
         delegate.setBannerView(bannerView)
-        
-        // Get root view controller
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            bannerView.rootViewController = rootViewController
-        }
-        
+
         // Set adaptive banner size using the SCREEN width (not the container width)
         let screenWidth = UIScreen.main.bounds.width
         bannerView.adSize = currentOrientationAnchoredAdaptiveBanner(width: screenWidth)
-        
+
         // Use explicit frame (not auto layout) so SwiftUI constraints don't affect banner size
         bannerView.frame = CGRect(
             x: 0,
@@ -83,12 +78,32 @@ class BannerContainerView: UIView {
             width: screenWidth,
             height: bannerView.adSize.size.height
         )
-        
-        addSubview(bannerView)
-        
+
+        if bannerView.superview == nil {
+            addSubview(bannerView)
+        }
+
         print("Banner configured: size=\(bannerView.adSize.size), adUnitID=\(adUnitID)")
-        
-        // Load the ad
+
+        loadAdIfPossible()
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        loadAdIfPossible()
+    }
+
+    private func loadAdIfPossible() {
+        guard !hasLoadedInitialRequest else { return }
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            print("Banner waiting for rootViewController before loading")
+            return
+        }
+
+        bannerView.rootViewController = rootViewController
+        hasLoadedInitialRequest = true
         bannerView.load(Request())
     }
     

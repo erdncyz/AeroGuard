@@ -1,6 +1,7 @@
 import SwiftUI
 import GoogleMobileAds
 import AppTrackingTransparency
+import AdSupport
 import UserNotifications
 #if canImport(FirebaseCore)
 import FirebaseCore
@@ -71,6 +72,23 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Initialize Google Mobile Ads SDK
+        let knownTestDevices = ["3782e4a61322392c70c3e9c283a5e13b"]
+        var testDevices = Set(knownTestDevices)
+
+        let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString.lowercased()
+        if idfa != "00000000-0000-0000-0000-000000000000" {
+            testDevices.insert(idfa)
+            testDevices.insert(idfa.replacingOccurrences(of: "-", with: ""))
+        }
+
+        if let idfv = UIDevice.current.identifierForVendor?.uuidString.lowercased() {
+            testDevices.insert(idfv)
+            testDevices.insert(idfv.replacingOccurrences(of: "-", with: ""))
+        }
+
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = Array(testDevices)
+        print("AdMob testDeviceIdentifiers: \(Array(testDevices).sorted())")
+
         AdManager.shared.initialize()
         AnalyticsManager.shared.trackAppOpened()
 
