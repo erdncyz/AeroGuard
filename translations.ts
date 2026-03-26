@@ -25,6 +25,8 @@ export const translations = {
     temp: "Temperature",
     press: "Pressure",
     hum: "Humidity",
+    wind: "Wind",
+    nearbyStations: "Nearby Stations",
     live: "Live",
     aqiIndex: "AQI INDEX",
     aqiScale: "AQI Scale",
@@ -90,7 +92,15 @@ export const translations = {
     protectTip4: "Keep windows closed when outdoor air quality is poor",
     protectTip5: "Reduce outdoor exercise when AQI exceeds 100",
     dataSource: "Data Source",
-    dataSourceDesc: "Our data comes from the World Air Quality Index Project (WAQI), which aggregates air quality data from over 130 countries and 30,000+ monitoring stations worldwide."
+    dataSourceDesc: "Our data comes from the World Air Quality Index Project (WAQI), which aggregates air quality data from over 130 countries and 30,000+ monitoring stations worldwide.",
+    shareTitle: "Share Air Quality",
+    shareText: "Air quality in {city}: AQI {aqi} ({level}). Check yours on AeroGuard!",
+    shareCopied: "Link copied!",
+    forecast: "Air Quality Forecast",
+    forecastValues: "VALUES",
+    forecastMax: "Top: Max",
+    forecastAvg: "Mid: Avg",
+    forecastMin: "Bot: Min"
   },
   tr: {
     title: "AeroGuard",
@@ -117,6 +127,8 @@ export const translations = {
     temp: "Sıcaklık",
     press: "Basınç",
     hum: "Nem",
+    wind: "Rüzgar",
+    nearbyStations: "Yakındaki İstasyonlar",
     live: "Canlı",
     aqiIndex: "AQI ENDEKSİ",
     aqiScale: "AQI Skalası",
@@ -182,7 +194,15 @@ export const translations = {
     protectTip4: "Dış hava kalitesi kötü olduğunda pencereleri kapalı tutun",
     protectTip5: "AQI 100'ü aştığında açık hava egzersizlerini azaltın",
     dataSource: "Veri Kaynağı",
-    dataSourceDesc: "Verilerimiz, 130'dan fazla ülke ve dünya çapında 30.000'den fazla izleme istasyonundan hava kalitesi verilerini toplayan Dünya Hava Kalitesi İndeksi Projesi'nden (WAQI) gelmektedir."
+    dataSourceDesc: "Verilerimiz, 130'dan fazla ülke ve dünya çapında 30.000'den fazla izleme istasyonundan hava kalitesi verilerini toplayan Dünya Hava Kalitesi İndeksi Projesi'nden (WAQI) gelmektedir.",
+    shareTitle: "Hava Kalitesini Paylaş",
+    shareText: "{city} hava kalitesi: AQI {aqi} ({level}). Sen de kontrol et!",
+    shareCopied: "Link kopyalandı!",
+    forecast: "Hava Kalitesi Tahmini",
+    forecastValues: "DEĞERLER",
+    forecastMax: "Üst: Maks",
+    forecastAvg: "Orta: Ort",
+    forecastMin: "Alt: Min"
   }
 };
 

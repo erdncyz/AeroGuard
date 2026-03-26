@@ -83,3 +83,33 @@ export const fetchStationById = async (idx: number): Promise<StationData> => {
   if (data.status !== 'ok') throw new Error(data.data);
   return data.data;
 };
+
+export interface NearbyStation {
+  uid: number;
+  aqi: number;
+  lat: number;
+  lon: number;
+  name: string;
+  distance: number;
+}
+
+export const fetchNearbyStations = async (lat: number, lng: number, limit = 5): Promise<NearbyStation[]> => {
+  const diff = 1.0;
+  const url = `${WAQI_BASE_URL}/map/bounds/?token=${WAQI_TOKEN}&latlng=${lat - diff},${lng - diff},${lat + diff},${lng + diff}`;
+  const response = await fetch(url);
+  const data = await response.json();
+  if (data.status !== 'ok' || !data.data) return [];
+
+  return data.data
+    .filter((s: any) => s.aqi && s.aqi !== '-' && !isNaN(Number(s.aqi)))
+    .map((s: any) => ({
+      uid: s.uid,
+      aqi: Number(s.aqi),
+      lat: s.lat,
+      lon: s.lon,
+      name: s.station?.name || `Station #${s.uid}`,
+      distance: getDistanceFromLatLonInKm(lat, lng, s.lat, s.lon),
+    }))
+    .sort((a: NearbyStation, b: NearbyStation) => a.distance - b.distance)
+    .slice(0, limit);
+};

@@ -37,9 +37,10 @@ export interface StationData {
   };
   forecast?: {
     daily?: {
-      pm25: Array<{ avg: number; day: string; max: number; min: number }>;
-      pm10: Array<{ avg: number; day: string; max: number; min: number }>;
-      o3: Array<{ avg: number; day: string; max: number; min: number }>;
+      pm25?: Array<{ avg: number; day: string; max: number; min: number }>;
+      pm10?: Array<{ avg: number; day: string; max: number; min: number }>;
+      o3?: Array<{ avg: number; day: string; max: number; min: number }>;
+      uvi?: Array<{ avg: number; day: string; max: number; min: number }>;
     }
   }
 }

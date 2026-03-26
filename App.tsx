@@ -1,11 +1,15 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as waqiService from './services/waqiService';
+import { NearbyStation } from './services/waqiService';
 import { StationData, SearchResult, Language } from './types';
 import { getAqiMetadata } from './constants';
 import { translations, TURKEY_PROVINCES, COUNTRIES } from './translations';
 import PollutantCard from './components/PollutantCard';
 import AirMap from './components/AirMap';
+import ForecastChart from './components/ForecastChart';
+import AirQualityGames from './components/AirQualityGames';
+import { shareWithImage } from './services/shareCardService';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
@@ -24,6 +28,9 @@ const App: React.FC = () => {
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
+  const [activeSection, setActiveSection] = useState('section-aqi');
+  const navRef = useRef<HTMLDivElement>(null);
 
 
   const t = translations[lang];
@@ -150,6 +157,37 @@ const App: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [loadLocationData, loadCountryData]);
 
+  // Fetch nearby stations when stationData changes
+  useEffect(() => {
+    if (stationData?.city?.geo) {
+      const [lat, lng] = stationData.city.geo;
+      waqiService.fetchNearbyStations(lat, lng, 6).then((stations) => {
+        // Exclude the current station itself
+        setNearbyStations(stations.filter(s => s.distance > 0.5));
+      }).catch(() => setNearbyStations([]));
+    }
+  }, [stationData]);
+
+  // Scroll-spy: detect which section is in view
+  useEffect(() => {
+    const sectionIds = ['section-aqi', 'section-explore', 'section-forecast', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        }
+      },
+      { rootMargin: '-120px 0px -60% 0px', threshold: 0.1 }
+    );
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [stationData, nearbyStations]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -216,37 +254,70 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-safe">
       <div className="max-w-7xl mx-auto px-safe">
-        <header className="mobile-header flex flex-col gap-4 sm:gap-6 mb-6 sm:mb-10 pb-4">
-          <div className="flex items-center justify-between gap-2">
+        {/* Sticky Header + Navigation */}
+        <div className="sticky top-0 z-40 bg-[#f8fafc]/80 backdrop-blur-xl -mx-4 sm:-mx-6 px-4 sm:px-6">
+          <header className="flex items-center justify-between gap-2 py-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
               <div className="bg-emerald-500 text-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-200 flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 sm:h-6 sm:w-6" viewBox="0 0 20 20" fill="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
                 </svg>
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none truncate">
+                <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight leading-none truncate">
                   {t.title} <span className="text-emerald-500">Pro</span>
                 </h1>
-                <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold mt-0.5 sm:mt-1 uppercase tracking-wider sm:tracking-widest truncate">{t.subtitle}</p>
+                <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold mt-0.5 uppercase tracking-wider truncate">{t.subtitle}</p>
               </div>
             </div>
 
+            {/* Language Toggle */}
+            <button
+              onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all active:scale-95 flex-shrink-0"
+              aria-label="Change language"
+            >
+              <span className="text-sm">{lang === 'tr' ? '🇹🇷' : '🇬🇧'}</span>
+              <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{lang === 'tr' ? 'TR' : 'EN'}</span>
+            </button>
+          </header>
 
+          {/* Navigation Tabs */}
+          <div ref={navRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 border-b border-slate-200" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+            {[
+              { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
+              { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
+              { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
+              { id: 'section-nearby', label: lang === 'tr' ? 'Yakın İstasyonlar' : 'Nearby Stations' },
+              { id: 'section-map', label: lang === 'tr' ? 'Harita' : 'Map' },
+              { id: 'section-games', label: lang === 'tr' ? 'Oyunlar' : 'Games' },
+              { id: 'section-learn', label: lang === 'tr' ? 'Bilgi' : 'Learn' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  const el = document.getElementById(tab.id);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap pb-2 transition-all flex-shrink-0 border-b-2 ${
+                  activeSection === tab.id
+                    ? 'text-emerald-600 border-emerald-500'
+                    : 'text-slate-400 border-transparent hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-
-        </header>
-
-
-
-
+        <div className="h-4"></div>
 
 
         {stationData && (
           <main className="max-w-5xl mx-auto space-y-6 pb-10">
             <div className="space-y-6">
-              <section className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100 relative overflow-hidden">
+              <section id="section-aqi" className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100 relative overflow-hidden scroll-mt-28">
                 <div className={`absolute -top-10 -right-10 w-64 h-64 opacity-5 rounded-full ${aqiMeta?.color}`}></div>
 
                 <div className="flex flex-col md:flex-row gap-8 sm:gap-12 items-center">
@@ -289,11 +360,17 @@ const App: React.FC = () => {
                         <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
                         <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">{t.live}</span>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <PollutantCard label="PM 2.5" value={stationData.iaqi.pm25?.v} unit="µg/m³" description={t.pm25Desc} />
                         <PollutantCard label="PM 10" value={stationData.iaqi.pm10?.v} unit="µg/m³" description={t.pm10Desc} />
                         <PollutantCard label="Ozon (O₃)" value={stationData.iaqi.o3?.v} unit="ppb" description={t.o3Desc} />
                         <PollutantCard label="Azot (NO₂)" value={stationData.iaqi.no2?.v} unit="ppb" description={t.no2Desc} />
+                        {stationData.iaqi.co?.v !== undefined && (
+                          <PollutantCard label="CO" value={stationData.iaqi.co.v} unit="ppm" description={t.coDesc} />
+                        )}
+                        {stationData.iaqi.so2?.v !== undefined && (
+                          <PollutantCard label="SO₂" value={stationData.iaqi.so2.v} unit="ppb" description={t.so2Desc} />
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-3 text-[8px] font-bold">
                         <div className="flex items-center gap-1.5">
@@ -326,7 +403,8 @@ const App: React.FC = () => {
                         {[
                           { label: t.temp, value: `${stationData.iaqi.t?.v ?? '—'}°C`, color: 'text-sky-400' },
                           { label: t.hum, value: `${stationData.iaqi.h?.v ?? '—'}%`, color: 'text-emerald-400' },
-                          { label: t.press, value: `${stationData.iaqi.p?.v ?? '—'} hPa`, color: 'text-indigo-400' }
+                          { label: t.press, value: `${stationData.iaqi.p?.v ?? '—'} hPa`, color: 'text-indigo-400' },
+                          { label: lang === 'tr' ? 'Rüzgar' : 'Wind', value: `${stationData.iaqi.w?.v ?? '—'} m/s`, color: 'text-cyan-400' },
                         ].map((item, idx) => (
                           <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{item.label}</span>
@@ -347,12 +425,22 @@ const App: React.FC = () => {
                         {t.useLocation}
                       </button>
 
+                      {/* Share Button */}
+                      <button
+                        onClick={() => shareWithImage({ stationData, levelLabel: aqiText?.label || '', lang })}
+                        className="w-full py-4 px-8 bg-slate-800 hover:bg-slate-900 text-white text-[10px] font-black rounded-2xl transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest"
+                        aria-label="Share"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                        {lang === 'tr' ? 'PAYLAŞ' : 'SHARE'}
+                      </button>
+
                       <div className="flex items-start gap-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <p className="text-[10px] text-slate-500 leading-relaxed font-bold">
-                          Sensör bulunmayan bölgeler için en yakın istasyon verileri gösterilir.
+                          {lang === 'tr' ? 'Sensör bulunmayan bölgeler için en yakın istasyon verileri gösterilir.' : 'For areas without sensors, the nearest station data is displayed.'}
                         </p>
                       </div>
                     </div>
@@ -361,7 +449,7 @@ const App: React.FC = () => {
               </section>
 
               {/* Cascade Location Selection */}
-              <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
+              <section id="section-explore" className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 scroll-mt-28">
                 <div className="flex items-center gap-2 mb-6">
                   <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -530,7 +618,59 @@ const App: React.FC = () => {
                 </div>
               </section>
 
-              <section className="bg-white rounded-[2.5rem] p-3 sm:p-4 shadow-sm border border-slate-100 overflow-hidden">
+              {/* Forecast Chart */}
+              {stationData.forecast && (
+                <div id="section-forecast" className="scroll-mt-28">
+                  <ForecastChart forecast={stationData.forecast} lang={lang} />
+                </div>
+              )}
+
+              {/* Nearby Stations */}
+              {nearbyStations.length > 0 && (
+                <section id="section-nearby" className="bg-white rounded-[2.5rem] p-5 sm:p-6 shadow-sm border border-slate-100 scroll-mt-28">
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"></span>
+                    <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
+                      {lang === 'tr' ? 'Yakındaki İstasyonlar' : 'Nearby Stations'}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {nearbyStations.map((station) => {
+                      const meta = getAqiMetadata(station.aqi);
+                      return (
+                        <button
+                          key={station.uid}
+                          onClick={async () => {
+                            setLoading(true);
+                            try {
+                              const data = await waqiService.fetchStationById(station.uid);
+                              setStationData(data);
+                            } catch (err) {
+                              console.error('Station fetch error:', err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all text-left active:scale-[0.98]"
+                        >
+                          <div className={`w-10 h-10 rounded-xl ${meta.color} text-white flex items-center justify-center flex-shrink-0`}>
+                            <span className="text-sm font-black">{station.aqi}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-bold text-slate-700 truncate">{station.name}</p>
+                            <p className="text-[9px] text-slate-400 font-medium">{station.distance.toFixed(1)} km</p>
+                          </div>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              <section id="section-map" className="bg-white rounded-[2.5rem] p-3 sm:p-4 shadow-sm border border-slate-100 overflow-hidden scroll-mt-28">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 px-3 py-2 gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -557,10 +697,13 @@ const App: React.FC = () => {
           </main>
         )}
 
-        
+        {/* Mini Games Section */}
+        <div id="section-games" className="scroll-mt-28">
+          <AirQualityGames lang={lang} cityName={stationData?.city?.name} />
+        </div>
 
         {/* Educational Section */}
-        <section id="educational-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-20">
+        <section id="section-learn" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-28">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">

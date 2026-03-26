@@ -46,6 +46,22 @@ const PollutantCard: React.FC<PollutantCardProps> = ({ label, value, unit, descr
       if (value <= 360) return { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-200' };
       return { bg: 'bg-red-50', text: 'text-red-900', border: 'border-red-200' };
     }
+
+    // CO değerlendirmesi (ppm)
+    if (labelLower === 'co') {
+      if (value <= 4.4) return { bg: 'bg-emerald-50', text: 'text-emerald-900', border: 'border-emerald-200' };
+      if (value <= 9.4) return { bg: 'bg-yellow-50', text: 'text-yellow-900', border: 'border-yellow-200' };
+      if (value <= 12.4) return { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-200' };
+      return { bg: 'bg-red-50', text: 'text-red-900', border: 'border-red-200' };
+    }
+
+    // SO₂ değerlendirmesi (ppb)
+    if (labelLower.includes('so₂') || labelLower.includes('so2')) {
+      if (value <= 35) return { bg: 'bg-emerald-50', text: 'text-emerald-900', border: 'border-emerald-200' };
+      if (value <= 75) return { bg: 'bg-yellow-50', text: 'text-yellow-900', border: 'border-yellow-200' };
+      if (value <= 185) return { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-200' };
+      return { bg: 'bg-red-50', text: 'text-red-900', border: 'border-red-200' };
+    }
     
     return { bg: 'bg-slate-50', text: 'text-slate-800', border: 'border-slate-200' };
   };
