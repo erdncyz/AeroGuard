@@ -188,6 +188,17 @@ const App: React.FC = () => {
     return () => observer.disconnect();
   }, [stationData, nearbyStations]);
 
+  // Auto-scroll nav tabs to show the active tab
+  useEffect(() => {
+    if (!navRef.current) return;
+    const activeBtn = navRef.current.querySelector(`[data-section="${activeSection}"]`) as HTMLElement;
+    if (activeBtn) {
+      const container = navRef.current;
+      const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  }, [activeSection]);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -255,7 +266,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#f8fafc] pb-safe">
       <div className="max-w-7xl mx-auto px-safe">
         {/* Sticky Header + Navigation */}
-        <div className="sticky top-0 z-40 bg-[#f8fafc]/80 backdrop-blur-xl -mx-4 sm:-mx-6 px-4 sm:px-6">
+        <div className="sticky top-0 z-40 bg-[#f8fafc]/80 backdrop-blur-xl -mx-4 sm:-mx-6 px-4 sm:px-6 sticky-header-safe">
           <header className="flex items-center justify-between gap-2 py-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
               <div className="bg-emerald-500 text-white p-2 sm:p-2.5 rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-200 flex-shrink-0">
@@ -283,31 +294,36 @@ const App: React.FC = () => {
           </header>
 
           {/* Navigation Tabs */}
-          <div ref={navRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 border-b border-slate-200" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-            {[
-              { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
-              { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
-              { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
-              { id: 'section-nearby', label: lang === 'tr' ? 'Yakın İstasyonlar' : 'Nearby Stations' },
-              { id: 'section-map', label: lang === 'tr' ? 'Harita' : 'Map' },
-              { id: 'section-games', label: lang === 'tr' ? 'Oyunlar' : 'Games' },
-              { id: 'section-learn', label: lang === 'tr' ? 'Bilgi' : 'Learn' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  const el = document.getElementById(tab.id);
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className={`text-[11px] font-bold uppercase tracking-wider whitespace-nowrap pb-2 transition-all flex-shrink-0 border-b-2 ${
-                  activeSection === tab.id
-                    ? 'text-emerald-600 border-emerald-500'
-                    : 'text-slate-400 border-transparent hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="relative">
+            <div ref={navRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 pr-6" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+              {[
+                { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
+                { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
+                { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
+                { id: 'section-nearby', label: lang === 'tr' ? 'Yakın İstasyonlar' : 'Nearby Stations' },
+                { id: 'section-map', label: lang === 'tr' ? 'Harita' : 'Map' },
+                { id: 'section-games', label: lang === 'tr' ? 'Oyunlar' : 'Games' },
+                { id: 'section-learn', label: lang === 'tr' ? 'Bilgi' : 'Learn' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  data-section={tab.id}
+                  onClick={() => {
+                    const el = document.getElementById(tab.id);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap px-4 py-2 rounded-full transition-all flex-shrink-0 border ${
+                    activeSection === tab.id
+                      ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-200'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700 active:scale-95'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {/* Scroll fade hint */}
+            <div className="absolute right-0 top-0 bottom-3 w-10 bg-gradient-to-l from-[#f8fafc] to-transparent pointer-events-none"></div>
           </div>
         </div>
 
@@ -317,7 +333,7 @@ const App: React.FC = () => {
         {stationData && (
           <main className="max-w-5xl mx-auto space-y-6 pb-10">
             <div className="space-y-6">
-              <section id="section-aqi" className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100 relative overflow-hidden scroll-mt-28">
+              <section id="section-aqi" className="bg-white rounded-[2.5rem] p-6 sm:p-10 shadow-sm border border-slate-100 relative overflow-hidden scroll-mt-safe">
                 <div className={`absolute -top-10 -right-10 w-64 h-64 opacity-5 rounded-full ${aqiMeta?.color}`}></div>
 
                 <div className="flex flex-col md:flex-row gap-8 sm:gap-12 items-center">
@@ -449,7 +465,7 @@ const App: React.FC = () => {
               </section>
 
               {/* Cascade Location Selection */}
-              <section id="section-explore" className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 scroll-mt-28">
+              <section id="section-explore" className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 scroll-mt-safe">
                 <div className="flex items-center gap-2 mb-6">
                   <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -620,14 +636,14 @@ const App: React.FC = () => {
 
               {/* Forecast Chart */}
               {stationData.forecast && (
-                <div id="section-forecast" className="scroll-mt-28">
+                <div id="section-forecast" className="scroll-mt-safe">
                   <ForecastChart forecast={stationData.forecast} lang={lang} />
                 </div>
               )}
 
               {/* Nearby Stations */}
               {nearbyStations.length > 0 && (
-                <section id="section-nearby" className="bg-white rounded-[2.5rem] p-5 sm:p-6 shadow-sm border border-slate-100 scroll-mt-28">
+                <section id="section-nearby" className="bg-white rounded-[2.5rem] p-5 sm:p-6 shadow-sm border border-slate-100 scroll-mt-safe">
                   <div className="flex items-center gap-2 mb-5">
                     <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"></span>
                     <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
@@ -670,7 +686,7 @@ const App: React.FC = () => {
                 </section>
               )}
 
-              <section id="section-map" className="bg-white rounded-[2.5rem] p-3 sm:p-4 shadow-sm border border-slate-100 overflow-hidden scroll-mt-28">
+              <section id="section-map" className="bg-white rounded-[2.5rem] p-3 sm:p-4 shadow-sm border border-slate-100 overflow-hidden scroll-mt-safe">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 px-3 py-2 gap-3">
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -698,12 +714,12 @@ const App: React.FC = () => {
         )}
 
         {/* Mini Games Section */}
-        <div id="section-games" className="scroll-mt-28">
+        <div id="section-games" className="scroll-mt-safe">
           <AirQualityGames lang={lang} cityName={stationData?.city?.name} />
         </div>
 
         {/* Educational Section */}
-        <section id="section-learn" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-28">
+        <section id="section-learn" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10 scroll-mt-safe">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
