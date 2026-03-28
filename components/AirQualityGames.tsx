@@ -620,7 +620,7 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
           </span>
         </div>
         <p className="text-[9px] text-slate-400 text-center mt-1 font-semibold">
-          {lang === 'tr' ? '🡇 Yukarıdan aşağıya: en düşük AQI → en yüksek AQI' : '🡇 Top to bottom: lowest AQI → highest AQI'}
+          {lang === 'tr' ? 'Yukarıdan aşağıya: en düşük AQI → en yüksek AQI' : 'Top to bottom: lowest AQI → highest AQI'}
         </p>
         {!checked && (
           <p className="text-[9px] text-indigo-400 text-center mt-1 font-semibold">
