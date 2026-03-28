@@ -238,7 +238,7 @@ const fetchRandomCities = async (count: number, cityList: string[]): Promise<Cit
       const stations = await waqiService.searchStations(city);
       const valid = stations.find(s => s.aqi && s.aqi !== '-' && !isNaN(Number(s.aqi)));
       if (valid) {
-        results.push({ name: valid.station.name.split(',')[0].trim(), aqi: Number(valid.aqi) });
+        results.push({ name: city, aqi: Number(valid.aqi) });
       }
     } catch { /* skip */ }
   }
@@ -384,10 +384,31 @@ const HigherLowerGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, c
 };
 
 // ==================== PREDICT AQI ====================
+// Generate multiple choice options from the real AQI
+const generateOptions = (realAqi: number): number[] => {
+  const options = new Set<number>([realAqi]);
+  while (options.size < 4) {
+    // Generate plausible distractors: offset by 15-120 from the real value
+    const offset = Math.floor(Math.random() * 106) + 15;
+    const sign = Math.random() > 0.5 ? 1 : -1;
+    let fake = realAqi + offset * sign;
+    fake = Math.max(5, Math.min(500, fake));
+    if (!options.has(fake)) options.add(fake);
+  }
+  // Shuffle
+  const arr = Array.from(options);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
 const PredictGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityList }) => {
   const t = T[lang];
   const [city, setCity] = useState<CityAqi | null>(null);
-  const [guess, setGuess] = useState('');
+  const [options, setOptions] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [totalScore, setTotalScore] = useState(0);
   const [round, setRound] = useState(1);
@@ -396,40 +417,31 @@ const PredictGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
   const loadCity = useCallback(async () => {
     setLoading(true);
     setSubmitted(false);
-    setGuess('');
+    setSelected(null);
     const cities = await fetchRandomCities(1, cityList);
-    if (cities.length > 0) setCity(cities[0]);
+    if (cities.length > 0) {
+      setCity(cities[0]);
+      setOptions(generateOptions(cities[0].aqi));
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { loadCity(); }, [loadCity]);
 
-  const diff = submitted && city ? Math.abs(Number(guess) - city.aqi) : 0;
-  const roundScore = submitted ? Math.max(0, 100 - diff * 2) : 0;
+  const isCorrect = submitted && city && selected === city.aqi;
 
-  const getDiffLabel = () => {
-    if (diff === 0) return t.prPerfect;
-    if (diff <= 10) return t.prClose;
-    if (diff <= 30) return t.prGood;
-    return t.prFar;
+  const handleSelect = (val: number) => {
+    if (submitted) return;
+    setSelected(val);
   };
 
-  const getDiffColor = () => {
-    if (diff <= 5) return 'text-emerald-600 bg-emerald-50';
-    if (diff <= 15) return 'text-yellow-600 bg-yellow-50';
-    if (diff <= 30) return 'text-orange-600 bg-orange-50';
-    return 'text-red-600 bg-red-50';
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!guess || isNaN(Number(guess))) return;
+  const handleSubmit = () => {
+    if (selected === null || !city) return;
     setSubmitted(true);
-    setTotalScore(s => s + roundScore);
+    if (selected === city.aqi) {
+      setTotalScore(s => s + 100);
+    }
   };
-
-  // We need roundScore after submission, so let's compute it correctly
-  const actualRoundScore = city && submitted ? Math.max(0, 100 - Math.abs(Number(guess) - city.aqi) * 2) : 0;
 
   const handleNext = () => {
     setRound(r => r + 1);
@@ -450,7 +462,7 @@ const PredictGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-black text-slate-400 uppercase">{t.prRound}: <span className="text-indigo-600 text-sm">{round}</span></span>
-        <span className="text-[10px] font-black text-slate-400 uppercase">{t.prScore}: <span className="text-emerald-600 text-sm">{totalScore + (submitted ? actualRoundScore : 0)}</span></span>
+        <span className="text-[10px] font-black text-slate-400 uppercase">{t.prScore}: <span className="text-emerald-600 text-sm">{totalScore}</span></span>
       </div>
 
       <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-center text-white relative overflow-hidden">
@@ -459,55 +471,53 @@ const PredictGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
         <h4 className="text-2xl sm:text-3xl font-black tracking-tight">{city.name}</h4>
       </div>
 
-      {submitted ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">{t.prYourGuess}</p>
-              <p className="text-xl font-black text-slate-800">{guess}</p>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-100">
-              <p className="text-[8px] font-black text-slate-400 uppercase mb-1">{t.prResult}</p>
-              <div className="flex items-center justify-center gap-1.5">
-                <div className={`w-3 h-3 rounded-full ${getAqiBarColor(city.aqi)}`}></div>
-                <p className="text-xl font-black text-slate-800">{city.aqi}</p>
-              </div>
-            </div>
-            <div className={`rounded-xl p-4 text-center border ${getDiffColor()}`}>
-              <p className="text-[8px] font-black uppercase mb-1 opacity-70">{t.prDiff}</p>
-              <p className="text-xl font-black">{Math.abs(Number(guess) - city.aqi)}</p>
-            </div>
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        {options.map((opt) => {
+          const isThis = selected === opt;
+          const isAnswer = city.aqi === opt;
+          let cls = 'bg-white border-2 border-slate-200 hover:border-indigo-400 text-slate-800';
+          if (submitted && isAnswer) {
+            cls = 'bg-emerald-50 border-2 border-emerald-400 text-emerald-700 ring-2 ring-emerald-300';
+          } else if (submitted && isThis && !isAnswer) {
+            cls = 'bg-red-50 border-2 border-red-300 text-red-700';
+          } else if (!submitted && isThis) {
+            cls = 'bg-indigo-50 border-2 border-indigo-500 text-indigo-700 ring-2 ring-indigo-300';
+          }
+          return (
+            <button
+              key={opt}
+              onClick={() => handleSelect(opt)}
+              disabled={submitted}
+              className={`p-4 rounded-xl font-black text-lg transition-all active:scale-95 ${cls} ${submitted ? 'cursor-default' : 'cursor-pointer'}`}
+            >
+              <div className={`inline-block w-4 h-4 rounded-full mr-2 ${getAqiBarColor(opt)}`} style={{display: 'inline-block', verticalAlign: 'middle'}}></div>
+              {opt}
+              {submitted && isAnswer && <span className="ml-2">✓</span>}
+              {submitted && isThis && !isAnswer && <span className="ml-2">✗</span>}
+            </button>
+          );
+        })}
+      </div>
 
+      {submitted ? (
+        <div className="space-y-3">
           <div className="text-center">
-            <span className={`inline-block px-4 py-2 rounded-full text-xs font-black ${getDiffColor()}`}>
-              {getDiffLabel()} (+{actualRoundScore} pts)
+            <span className={`inline-block px-5 py-2.5 rounded-full text-sm font-black ${isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              {isCorrect ? (lang === 'tr' ? '✓ Doğru! +100 puan' : '✓ Correct! +100 pts') : (lang === 'tr' ? `✗ Yanlış! Doğru cevap: ${city.aqi}` : `✗ Wrong! Correct: ${city.aqi}`)}
             </span>
           </div>
-
           <button onClick={handleNext} className="w-full py-3.5 bg-slate-900 hover:bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95">
             {t.prNext}
           </button>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex gap-3">
-          <input
-            type="number"
-            min="0"
-            max="500"
-            value={guess}
-            onChange={e => setGuess(e.target.value)}
-            placeholder="0 - 500"
-            className="flex-1 px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-center text-lg font-black text-slate-800 outline-none focus:border-indigo-400 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={!guess}
-            className="px-8 py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-300 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed"
-          >
-            {t.prSubmit}
-          </button>
-        </form>
+        <button
+          onClick={handleSubmit}
+          disabled={selected === null}
+          className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-300 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed"
+        >
+          {t.prSubmit}
+        </button>
       )}
     </div>
   );
@@ -521,11 +531,18 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
   const [checked, setChecked] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+  const touchStartY = React.useRef<number>(0);
+  const touchCurrentIdx = React.useRef<number | null>(null);
+  const listRef = React.useRef<HTMLDivElement>(null);
 
   const loadCities = useCallback(async () => {
     setLoading(true);
     setChecked(false);
     setCorrectCount(0);
+    setDragIdx(null);
+    setOverIdx(null);
     const data = await fetchRandomCities(5, cityList);
     setCities(data.sort((a, b) => a.aqi - b.aqi)); // correctly sorted
     setUserOrder(shuffle(data)); // shuffled for user
@@ -534,18 +551,58 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
 
   useEffect(() => { loadCities(); }, [loadCities]);
 
-  const moveUp = (idx: number) => {
-    if (idx === 0 || checked) return;
-    const arr = [...userOrder];
-    [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
-    setUserOrder(arr);
+  // Mouse drag handlers
+  const handleDragStart = (idx: number) => {
+    if (checked) return;
+    setDragIdx(idx);
+  };
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setOverIdx(idx);
+  };
+  const handleDragEnd = () => {
+    if (dragIdx !== null && overIdx !== null && dragIdx !== overIdx) {
+      const arr = [...userOrder];
+      const [moved] = arr.splice(dragIdx, 1);
+      arr.splice(overIdx, 0, moved);
+      setUserOrder(arr);
+    }
+    setDragIdx(null);
+    setOverIdx(null);
   };
 
-  const moveDown = (idx: number) => {
-    if (idx === userOrder.length - 1 || checked) return;
-    const arr = [...userOrder];
-    [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
-    setUserOrder(arr);
+  // Touch drag handlers
+  const getIdxFromY = (clientY: number): number | null => {
+    if (!listRef.current) return null;
+    const children = Array.from(listRef.current.children) as HTMLElement[];
+    for (let i = 0; i < children.length; i++) {
+      const rect = children[i].getBoundingClientRect();
+      if (clientY >= rect.top && clientY <= rect.bottom) return i;
+    }
+    return null;
+  };
+
+  const handleTouchStart = (idx: number, e: React.TouchEvent) => {
+    if (checked) return;
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentIdx.current = idx;
+    setDragIdx(idx);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const y = e.touches[0].clientY;
+    const idx = getIdxFromY(y);
+    if (idx !== null) setOverIdx(idx);
+  };
+  const handleTouchEnd = () => {
+    if (touchCurrentIdx.current !== null && overIdx !== null && touchCurrentIdx.current !== overIdx) {
+      const arr = [...userOrder];
+      const [moved] = arr.splice(touchCurrentIdx.current, 1);
+      arr.splice(overIdx, 0, moved);
+      setUserOrder(arr);
+    }
+    setDragIdx(null);
+    setOverIdx(null);
+    touchCurrentIdx.current = null;
   };
 
   const checkOrder = () => {
@@ -567,50 +624,63 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest">
-        <span className="text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">{t.rkCleanest}</span>
-        <span className="text-red-600 bg-red-50 px-2.5 py-1 rounded-lg">{t.rkDirtiest}</span>
+      <div className="bg-gradient-to-r from-emerald-50 via-slate-50 to-red-50 rounded-xl p-3 border border-slate-100">
+        <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest">
+          <span className="text-emerald-600 flex items-center gap-1">
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[8px]">1</span>
+            {t.rkCleanest}
+          </span>
+          <div className="flex-1 mx-3 flex items-center justify-center gap-1 text-slate-300">
+            <span>─</span><span>─</span><span>▸</span>
+          </div>
+          <span className="text-red-600 flex items-center gap-1">
+            {t.rkDirtiest}
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-500 text-white text-[8px]">{userOrder.length}</span>
+          </span>
+        </div>
+        <p className="text-[9px] text-slate-400 text-center mt-1 font-semibold">
+          {lang === 'tr' ? '🡇 Yukarıdan aşağıya: en düşük AQI → en yüksek AQI' : '🡇 Top to bottom: lowest AQI → highest AQI'}
+        </p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2" ref={listRef}>
         {userOrder.map((city, idx) => {
           const isCorrect = checked && city.name === cities[idx].name;
           const isWrong = checked && city.name !== cities[idx].name;
+          const isDragging = dragIdx === idx;
+          const isOver = overIdx === idx && dragIdx !== idx;
           return (
             <div
               key={city.name}
-              className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+              draggable={!checked}
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragEnd={handleDragEnd}
+              onTouchStart={(e) => handleTouchStart(idx, e)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all select-none ${
                 isCorrect ? 'bg-emerald-50 border-emerald-300' :
                 isWrong ? 'bg-red-50 border-red-200' :
+                isDragging ? 'bg-indigo-50 border-indigo-300 opacity-50 scale-95' :
+                isOver ? 'bg-indigo-50 border-indigo-400 border-dashed' :
                 'bg-white border-slate-100 hover:border-slate-200'
-              }`}
+              } ${!checked ? 'cursor-grab active:cursor-grabbing' : ''}`}
             >
               <span className="text-[10px] font-black text-slate-300 w-5 text-center">{idx + 1}</span>
+
+              {!checked && (
+                <svg className="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+              )}
+
               <span className="flex-1 text-sm font-black text-slate-800 truncate">{city.name}</span>
 
               {checked && (
                 <span className={`text-xs font-black px-2 py-0.5 rounded-lg ${getAqiBarColor(city.aqi)} text-white`}>
                   {city.aqi}
                 </span>
-              )}
-
-              {!checked && (
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => moveUp(idx)}
-                    disabled={idx === 0}
-                    className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 text-sm font-bold"
-                  >
-                    {t.rkUp}
-                  </button>
-                  <button
-                    onClick={() => moveDown(idx)}
-                    disabled={idx === userOrder.length - 1}
-                    className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90 text-sm font-bold"
-                  >
-                    {t.rkDown}
-                  </button>
-                </div>
               )}
 
               {isCorrect && <span className="text-emerald-500 text-sm">✓</span>}
