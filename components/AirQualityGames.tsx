@@ -531,30 +531,45 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
   const [checked, setChecked] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
-  const touchStartY = React.useRef<number>(0);
-  const touchCurrentIdx = React.useRef<number | null>(null);
-  const listRef = React.useRef<HTMLDivElement>(null);
 
   const loadCities = useCallback(async () => {
     setLoading(true);
     setChecked(false);
     setCorrectCount(0);
+    setSelectedIdx(null);
     setDragIdx(null);
     setOverIdx(null);
     const data = await fetchRandomCities(5, cityList);
-    setCities(data.sort((a, b) => a.aqi - b.aqi)); // correctly sorted
-    setUserOrder(shuffle(data)); // shuffled for user
+    setCities(data.sort((a, b) => a.aqi - b.aqi));
+    setUserOrder(shuffle(data));
     setLoading(false);
   }, []);
 
   useEffect(() => { loadCities(); }, [loadCities]);
 
-  // Mouse drag handlers
+  // Tap to swap: first tap selects, second tap swaps
+  const handleTap = (idx: number) => {
+    if (checked) return;
+    if (selectedIdx === null) {
+      setSelectedIdx(idx);
+    } else if (selectedIdx === idx) {
+      setSelectedIdx(null);
+    } else {
+      const arr = [...userOrder];
+      [arr[selectedIdx], arr[idx]] = [arr[idx], arr[selectedIdx]];
+      setUserOrder(arr);
+      setSelectedIdx(null);
+    }
+  };
+
+  // Desktop drag handlers
   const handleDragStart = (idx: number) => {
     if (checked) return;
     setDragIdx(idx);
+    setSelectedIdx(null);
   };
   const handleDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault();
@@ -569,40 +584,6 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
     }
     setDragIdx(null);
     setOverIdx(null);
-  };
-
-  // Touch drag handlers
-  const getIdxFromY = (clientY: number): number | null => {
-    if (!listRef.current) return null;
-    const children = Array.from(listRef.current.children) as HTMLElement[];
-    for (let i = 0; i < children.length; i++) {
-      const rect = children[i].getBoundingClientRect();
-      if (clientY >= rect.top && clientY <= rect.bottom) return i;
-    }
-    return null;
-  };
-
-  const handleTouchStart = (idx: number, e: React.TouchEvent) => {
-    if (checked) return;
-    touchStartY.current = e.touches[0].clientY;
-    touchCurrentIdx.current = idx;
-    setDragIdx(idx);
-  };
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const y = e.touches[0].clientY;
-    const idx = getIdxFromY(y);
-    if (idx !== null) setOverIdx(idx);
-  };
-  const handleTouchEnd = () => {
-    if (touchCurrentIdx.current !== null && overIdx !== null && touchCurrentIdx.current !== overIdx) {
-      const arr = [...userOrder];
-      const [moved] = arr.splice(touchCurrentIdx.current, 1);
-      arr.splice(overIdx, 0, moved);
-      setUserOrder(arr);
-    }
-    setDragIdx(null);
-    setOverIdx(null);
-    touchCurrentIdx.current = null;
   };
 
   const checkOrder = () => {
@@ -641,14 +622,20 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
         <p className="text-[9px] text-slate-400 text-center mt-1 font-semibold">
           {lang === 'tr' ? '🡇 Yukarıdan aşağıya: en düşük AQI → en yüksek AQI' : '🡇 Top to bottom: lowest AQI → highest AQI'}
         </p>
+        {!checked && (
+          <p className="text-[9px] text-indigo-400 text-center mt-1 font-semibold">
+            {lang === 'tr' ? '💡 İki şehre dokunarak yerlerini değiştir' : '💡 Tap two cities to swap them'}
+          </p>
+        )}
       </div>
 
-      <div className="space-y-2" ref={listRef}>
+      <div className="space-y-2">
         {userOrder.map((city, idx) => {
           const isCorrect = checked && city.name === cities[idx].name;
           const isWrong = checked && city.name !== cities[idx].name;
           const isDragging = dragIdx === idx;
           const isOver = overIdx === idx && dragIdx !== idx;
+          const isSelected = selectedIdx === idx;
           return (
             <div
               key={city.name}
@@ -656,22 +643,21 @@ const RankingGame: React.FC<{ lang: Lang; cityList: string[] }> = ({ lang, cityL
               onDragStart={() => handleDragStart(idx)}
               onDragOver={(e) => handleDragOver(e, idx)}
               onDragEnd={handleDragEnd}
-              onTouchStart={(e) => handleTouchStart(idx, e)}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              onClick={() => handleTap(idx)}
               className={`flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all select-none ${
                 isCorrect ? 'bg-emerald-50 border-emerald-300' :
                 isWrong ? 'bg-red-50 border-red-200' :
+                isSelected ? 'bg-indigo-100 border-indigo-500 ring-2 ring-indigo-300 scale-[1.02]' :
                 isDragging ? 'bg-indigo-50 border-indigo-300 opacity-50 scale-95' :
                 isOver ? 'bg-indigo-50 border-indigo-400 border-dashed' :
                 'bg-white border-slate-100 hover:border-slate-200'
-              } ${!checked ? 'cursor-grab active:cursor-grabbing' : ''}`}
+              } ${!checked ? 'cursor-pointer' : ''}`}
             >
               <span className="text-[10px] font-black text-slate-300 w-5 text-center">{idx + 1}</span>
 
               {!checked && (
-                <svg className="w-4 h-4 text-slate-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                <svg className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-indigo-500' : 'text-slate-300'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                 </svg>
               )}
 
