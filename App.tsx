@@ -6,10 +6,12 @@ import { StationData, SearchResult, Language } from './types';
 import { getAqiMetadata } from './constants';
 import { translations, TURKEY_PROVINCES, COUNTRIES } from './translations';
 import PollutantCard from './components/PollutantCard';
+import PollenCard from './components/PollenCard';
 import AirMap from './components/AirMap';
 import ForecastChart from './components/ForecastChart';
 import AirQualityGames from './components/AirQualityGames';
 import { shareWithImage } from './services/shareCardService';
+import { fetchPollenData, PollenData } from './services/pollenService';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
@@ -29,6 +31,8 @@ const App: React.FC = () => {
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
+  const [pollenData, setPollenData] = useState<PollenData | null>(null);
+  const [searchedPollenData, setSearchedPollenData] = useState<PollenData | null>(null);
   const [activeSection, setActiveSection] = useState('section-aqi');
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +161,7 @@ const App: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [loadLocationData, loadCountryData]);
 
-  // Fetch nearby stations when stationData changes
+  // Fetch nearby stations and pollen data when stationData changes
   useEffect(() => {
     if (stationData?.city?.geo) {
       const [lat, lng] = stationData.city.geo;
@@ -165,21 +169,38 @@ const App: React.FC = () => {
         // Exclude the current station itself
         setNearbyStations(stations.filter(s => s.distance > 0.5));
       }).catch(() => setNearbyStations([]));
+
+      // Fetch pollen data from Open-Meteo
+      fetchPollenData(lat, lng)
+        .then(res => setPollenData(res.current))
+        .catch(() => setPollenData(null));
     }
   }, [stationData]);
 
   // Scroll-spy: detect which section is in view
   useEffect(() => {
-    const sectionIds = ['section-aqi', 'section-explore', 'section-forecast', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const sectionIds = ['section-aqi', 'section-forecast', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const visibleSections = new Map<string, number>();
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
+            visibleSections.set(entry.target.id, entry.intersectionRatio);
+          } else {
+            visibleSections.delete(entry.target.id);
           }
         }
+        // Pick the last visible section in document order
+        let active = '';
+        for (const id of sectionIds) {
+          if (visibleSections.has(id)) {
+            active = id;
+          }
+        }
+        if (active) setActiveSection(active);
       },
-      { rootMargin: '-120px 0px -60% 0px', threshold: 0.1 }
+      { rootMargin: '-100px 0px -30% 0px', threshold: [0, 0.1, 0.3] }
     );
     sectionIds.forEach((id) => {
       const el = document.getElementById(id);
@@ -218,12 +239,18 @@ const App: React.FC = () => {
     if (!prov) return;
     setSearchLoading(true);
     setSearchedStationData(null);
+    setSearchedPollenData(null);
     try {
       const results = await waqiService.searchStations(prov);
       if (results.length > 0) {
-        // Otomatik olarak ilk sonucu seç
         const data = await waqiService.fetchStationById(results[0].uid);
         setSearchedStationData(data);
+        // Fetch pollen for searched location
+        if (data.city?.geo) {
+          fetchPollenData(data.city.geo[0], data.city.geo[1])
+            .then(res => setSearchedPollenData(res.current))
+            .catch(() => setSearchedPollenData(null));
+        }
       }
     } catch (err) {
       console.error(err);
@@ -235,11 +262,17 @@ const App: React.FC = () => {
   const selectStation = async (idx: number) => {
     setSearchLoading(true);
     setSearchedStationData(null);
+    setSearchedPollenData(null);
     setSearchResults([]);
     setSearchQuery('');
     try {
       const data = await waqiService.fetchStationById(idx);
       setSearchedStationData(data);
+      if (data.city?.geo) {
+        fetchPollenData(data.city.geo[0], data.city.geo[1])
+          .then(res => setSearchedPollenData(res.current))
+          .catch(() => setSearchedPollenData(null));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -298,8 +331,9 @@ const App: React.FC = () => {
             <div ref={navRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 pr-6" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
               {[
                 { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
-                { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
                 { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
+                { id: 'section-pollen', label: lang === 'tr' ? 'Polen' : 'Pollen' },
+                { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
                 { id: 'section-nearby', label: lang === 'tr' ? 'Yakın İstasyonlar' : 'Nearby Stations' },
                 { id: 'section-map', label: lang === 'tr' ? 'Harita' : 'Map' },
                 { id: 'section-games', label: lang === 'tr' ? 'Oyunlar' : 'Games' },
@@ -464,6 +498,20 @@ const App: React.FC = () => {
                 </div>
               </section>
 
+              {/* Forecast Chart */}
+              {stationData.forecast && (
+                <div id="section-forecast" className="scroll-mt-safe">
+                  <ForecastChart forecast={stationData.forecast} lang={lang} />
+                </div>
+              )}
+
+              {/* Pollen Forecast */}
+              {pollenData && (
+                <section id="section-pollen" className="scroll-mt-safe">
+                  <PollenCard pollenData={pollenData} lang={lang} cityName={stationData.city.name} />
+                </section>
+              )}
+
               {/* Cascade Location Selection */}
               <section id="section-explore" className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 scroll-mt-safe">
                 <div className="flex items-center gap-2 mb-6">
@@ -612,20 +660,106 @@ const App: React.FC = () => {
                               {t.aqiLevels[getAqiMetadata(searchedStationData.aqi).key].label}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2 mt-2">
-                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                <p className="text-[7px] font-black text-slate-400 uppercase">PM2.5</p>
-                                <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm25?.v ?? '-'}</p>
-                              </div>
-                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                <p className="text-[7px] font-black text-slate-400 uppercase">PM10</p>
-                                <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm10?.v ?? '-'}</p>
-                              </div>
-                              <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                <p className="text-[7px] font-black text-slate-400 uppercase">TEMP</p>
-                                <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.t?.v ?? '-'}°</p>
+                            {/* Kirleticiler */}
+                            <div className="mb-3">
+                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.pollutantBreakdown}</p>
+                              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">PM2.5</p>
+                                  <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm25?.v ?? '-'}</p>
+                                </div>
+                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">PM10</p>
+                                  <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.pm10?.v ?? '-'}</p>
+                                </div>
+                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">O₃</p>
+                                  <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.o3?.v ?? '-'}</p>
+                                </div>
+                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">NO₂</p>
+                                  <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.no2?.v ?? '-'}</p>
+                                </div>
+                                {searchedStationData.iaqi.co?.v !== undefined && (
+                                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <p className="text-[7px] font-black text-slate-400 uppercase">CO</p>
+                                    <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.co.v}</p>
+                                  </div>
+                                )}
+                                {searchedStationData.iaqi.so2?.v !== undefined && (
+                                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <p className="text-[7px] font-black text-slate-400 uppercase">SO₂</p>
+                                    <p className="text-xs font-black text-slate-700">{searchedStationData.iaqi.so2.v}</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
+
+                            {/* Hava Koşulları */}
+                            <div className="mb-3">
+                              <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.conditions}</p>
+                              <div className="grid grid-cols-4 gap-2">
+                                <div className="bg-sky-50 p-2 rounded-xl border border-sky-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">{t.temp}</p>
+                                  <p className="text-xs font-black text-sky-600">{searchedStationData.iaqi.t?.v ?? '-'}°C</p>
+                                </div>
+                                <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">{t.hum}</p>
+                                  <p className="text-xs font-black text-emerald-600">{searchedStationData.iaqi.h?.v ?? '-'}%</p>
+                                </div>
+                                <div className="bg-indigo-50 p-2 rounded-xl border border-indigo-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">{t.press}</p>
+                                  <p className="text-xs font-black text-indigo-600">{searchedStationData.iaqi.p?.v ?? '-'}</p>
+                                </div>
+                                <div className="bg-cyan-50 p-2 rounded-xl border border-cyan-100">
+                                  <p className="text-[7px] font-black text-slate-400 uppercase">{t.wind}</p>
+                                  <p className="text-xs font-black text-cyan-600">{searchedStationData.iaqi.w?.v ?? '-'} m/s</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* UV Tahmini */}
+                            {searchedStationData.forecast?.daily?.uvi && searchedStationData.forecast.daily.uvi.length > 0 && (
+                              <div className="mb-3">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{lang === 'tr' ? 'UV İndeksi' : 'UV Index'}</p>
+                                <div className="flex gap-2 overflow-x-auto">
+                                  {searchedStationData.forecast.daily.uvi.slice(0, 5).map((uv, i) => {
+                                    const uvColor = uv.avg <= 2 ? 'bg-emerald-100 text-emerald-700' : uv.avg <= 5 ? 'bg-yellow-100 text-yellow-700' : uv.avg <= 7 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
+                                    return (
+                                      <div key={i} className={`${uvColor} px-3 py-2 rounded-xl text-center min-w-[52px]`}>
+                                        <p className="text-[7px] font-black uppercase">{new Date(uv.day).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' })}</p>
+                                        <p className="text-sm font-black">{uv.avg}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Polen */}
+                            {searchedPollenData && (
+                              <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{lang === 'tr' ? 'Polen' : 'Pollen'}</p>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                  {[
+                                    { key: 'grass' as const, icon: '🌾', label: lang === 'tr' ? 'Çimen' : 'Grass' },
+                                    { key: 'birch' as const, icon: '🌳', label: lang === 'tr' ? 'Huş' : 'Birch' },
+                                    { key: 'alder' as const, icon: '🌿', label: lang === 'tr' ? 'Kızılağaç' : 'Alder' },
+                                    { key: 'olive' as const, icon: '🫒', label: lang === 'tr' ? 'Zeytin' : 'Olive' },
+                                    { key: 'mugwort' as const, icon: '🌱', label: lang === 'tr' ? 'Yavşan' : 'Mugwort' },
+                                    { key: 'ragweed' as const, icon: '🌼', label: lang === 'tr' ? 'Kanarya' : 'Ragweed' },
+                                  ].map(p => {
+                                    const val = searchedPollenData[p.key];
+                                    return (
+                                      <div key={p.key} className="bg-amber-50 p-2 rounded-xl border border-amber-100">
+                                        <p className="text-[7px] font-black text-slate-400 uppercase">{p.icon} {p.label}</p>
+                                        <p className="text-xs font-black text-amber-700">{val !== null ? Math.round(val) : '-'}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -633,13 +767,6 @@ const App: React.FC = () => {
                   )}
                 </div>
               </section>
-
-              {/* Forecast Chart */}
-              {stationData.forecast && (
-                <div id="section-forecast" className="scroll-mt-safe">
-                  <ForecastChart forecast={stationData.forecast} lang={lang} />
-                </div>
-              )}
 
               {/* Nearby Stations */}
               {nearbyStations.length > 0 && (
@@ -826,6 +953,97 @@ const App: React.FC = () => {
                   <p className="text-sm font-medium leading-relaxed">{tip}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* UV Index Section */}
+          <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-slate-100 mb-12">
+            <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight flex items-center gap-3">
+              <span className="bg-amber-100 p-2 rounded-xl text-amber-600">☀️</span>
+              {t.uvTitle}
+            </h3>
+            <p className="text-slate-600 mb-8 leading-relaxed font-medium">{t.uvInfo}</p>
+
+            <h4 className="text-sm font-black text-slate-800 mb-4 uppercase tracking-widest">{t.uvScaleTitle}</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+              {[
+                { label: t.uvLevels.low, color: 'bg-emerald-500' },
+                { label: t.uvLevels.moderate, color: 'bg-yellow-500' },
+                { label: t.uvLevels.high, color: 'bg-orange-500' },
+                { label: t.uvLevels.veryHigh, color: 'bg-red-500' },
+                { label: t.uvLevels.extreme, color: 'bg-purple-600' },
+              ].map((item, idx) => (
+                <div key={idx} className="text-center">
+                  <div className={`${item.color} text-white py-3 px-2 rounded-2xl mb-2 shadow-lg`}>
+                    <div className="text-sm font-black">{item.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-[2rem] p-6 sm:p-8 text-white">
+              <h4 className="text-lg font-black mb-4 flex items-center gap-2">
+                <span className="bg-white/20 p-1.5 rounded-lg">🛡️</span>
+                {t.uvProtectTitle}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[t.uvTip1, t.uvTip2, t.uvTip3, t.uvTip4].map((tip, idx) => (
+                  <div key={idx} className="flex items-start gap-2 bg-white/10 rounded-xl p-3 border border-white/20">
+                    <div className="bg-white/20 rounded-full p-1 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed">{tip}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Pollen Section */}
+          <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-slate-100 mb-12">
+            <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight flex items-center gap-3">
+              <span className="bg-green-100 p-2 rounded-xl text-green-600">🌿</span>
+              {t.pollenTitle}
+            </h3>
+            <p className="text-slate-600 mb-8 leading-relaxed font-medium">{t.pollenInfo}</p>
+
+            <h4 className="text-sm font-black text-slate-800 mb-4 uppercase tracking-widest">{t.pollenTypesTitle}</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {[
+                { title: lang === 'tr' ? 'Kızılağaç' : 'Alder', info: t.pollenAlderInfo, icon: '🌿', color: 'from-green-50 to-emerald-50', border: 'border-green-100' },
+                { title: lang === 'tr' ? 'Huş Ağacı' : 'Birch', info: t.pollenBirchInfo, icon: '🌳', color: 'from-lime-50 to-green-50', border: 'border-lime-100' },
+                { title: lang === 'tr' ? 'Çimen' : 'Grass', info: t.pollenGrassInfo, icon: '🌾', color: 'from-yellow-50 to-amber-50', border: 'border-yellow-100' },
+                { title: lang === 'tr' ? 'Zeytin' : 'Olive', info: t.pollenOliveInfo, icon: '🫒', color: 'from-emerald-50 to-teal-50', border: 'border-emerald-100' },
+                { title: lang === 'tr' ? 'Yavşan Otu' : 'Mugwort', info: t.pollenMugwortInfo, icon: '🌱', color: 'from-teal-50 to-cyan-50', border: 'border-teal-100' },
+                { title: lang === 'tr' ? 'Kanarya Otu' : 'Ragweed', info: t.pollenRagweedInfo, icon: '🌼', color: 'from-orange-50 to-amber-50', border: 'border-orange-100' },
+              ].map((item, idx) => (
+                <div key={idx} className={`bg-gradient-to-br ${item.color} rounded-[1.5rem] p-5 border ${item.border}`}>
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h5 className="text-sm font-black text-slate-900 mb-2 tracking-tight">{item.title}</h5>
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">{item.info}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-[2rem] p-6 sm:p-8 text-white">
+              <h4 className="text-lg font-black mb-4 flex items-center gap-2">
+                <span className="bg-white/20 p-1.5 rounded-lg">🤧</span>
+                {t.pollenProtectTitle}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[t.pollenTip1, t.pollenTip2, t.pollenTip3, t.pollenTip4, t.pollenTip5].map((tip, idx) => (
+                  <div key={idx} className="flex items-start gap-2 bg-white/10 rounded-xl p-3 border border-white/20">
+                    <div className="bg-white/20 rounded-full p-1 mt-0.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed">{tip}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

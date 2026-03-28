@@ -70,6 +70,40 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ forecast, lang }) => {
     return descs[key]?.[lang] || '';
   };
 
+  const getScaleItems = (key: string) => {
+    if (key === 'UV') {
+      return [
+        { label: lang === 'tr' ? '0-2 Düşük' : '0-2 Low', color: 'bg-emerald-400', text: 'text-white' },
+        { label: lang === 'tr' ? '3-5 Orta' : '3-5 Moderate', color: 'bg-yellow-400', text: 'text-yellow-900' },
+        { label: lang === 'tr' ? '6-7 Yüksek' : '6-7 High', color: 'bg-orange-400', text: 'text-white' },
+        { label: lang === 'tr' ? '8-10 Çok Yüksek' : '8-10 Very High', color: 'bg-rose-500', text: 'text-white' },
+        { label: lang === 'tr' ? '11+ Aşırı' : '11+ Extreme', color: 'bg-purple-600', text: 'text-white' },
+      ];
+    }
+    return [
+      { label: lang === 'tr' ? '0-50 İyi' : '0-50 Good', color: 'bg-emerald-400', text: 'text-white' },
+      { label: lang === 'tr' ? '51-100 Orta' : '51-100 Moderate', color: 'bg-yellow-400', text: 'text-yellow-900' },
+      { label: lang === 'tr' ? '101-150 Hassas' : '101-150 Sensitive', color: 'bg-orange-400', text: 'text-white' },
+      { label: lang === 'tr' ? '151-200 Sağlıksız' : '151-200 Unhealthy', color: 'bg-rose-500', text: 'text-white' },
+      { label: lang === 'tr' ? '200+ Tehlikeli' : '200+ Hazardous', color: 'bg-purple-600', text: 'text-white' },
+    ];
+  };
+
+  const getBarPosition = (val: number, key: string): number => {
+    if (key === 'UV') {
+      if (val <= 2) return (val / 2) * 20;
+      if (val <= 5) return 20 + ((val - 2) / 3) * 20;
+      if (val <= 7) return 40 + ((val - 5) / 2) * 20;
+      if (val <= 10) return 60 + ((val - 7) / 3) * 20;
+      return Math.min(95, 80 + ((val - 10) / 5) * 20);
+    }
+    if (val <= 50) return (val / 50) * 20;
+    if (val <= 100) return 20 + ((val - 50) / 50) * 20;
+    if (val <= 150) return 40 + ((val - 100) / 50) * 20;
+    if (val <= 200) return 60 + ((val - 150) / 50) * 20;
+    return Math.min(95, 80 + ((val - 200) / 100) * 20);
+  };
+
   const activeUnit = activeDataset?.unit || '';
   const activeDescription = getDescription(activeTab);
 
@@ -86,7 +120,9 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ forecast, lang }) => {
             </svg>
           </div>
           <h3 className="text-sm font-black text-slate-900 tracking-tight">
-            {lang === 'tr' ? 'Hava Kalitesi Tahmini' : 'Air Quality Forecast'}
+            {activeTab === 'UV'
+              ? (lang === 'tr' ? 'UV İndeksi Tahmini' : 'UV Index Forecast')
+              : (lang === 'tr' ? 'Hava Kalitesi Tahmini' : 'Air Quality Forecast')}
           </h3>
         </div>
 
@@ -157,9 +193,39 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ forecast, lang }) => {
                     <p className="text-[10px] font-black text-slate-500">{d.max}</p>
                   </div>
                 </div>
+
+                {/* Scale bar */}
+                <div className="mt-2">
+                  <div className="h-1.5 rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 to-red-500 relative">
+                    <div
+                      className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white border-2 border-slate-700 shadow transition-all"
+                      style={{ left: `${getBarPosition(d.avg, activeTab)}%`, marginLeft: '-5px' }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-0.5">
+                    <span className="text-[6px] font-bold text-emerald-500">{lang === 'tr' ? 'İyi' : 'Good'}</span>
+                    <span className="text-[6px] font-bold text-red-500">{lang === 'tr' ? 'Kötü' : 'Bad'}</span>
+                  </div>
+                </div>
               </div>
             );
           })}
+        </div>
+      </div>
+
+      {/* Scale Legend */}
+      <div className="mt-4 bg-slate-50/80 rounded-2xl p-4 border border-slate-100">
+        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">
+          {activeTab === 'UV'
+            ? (lang === 'tr' ? 'UV Skalası' : 'UV Scale')
+            : (lang === 'tr' ? 'AQI Skalası' : 'AQI Scale')}
+        </p>
+        <div className="flex gap-2">
+          {getScaleItems(activeTab).map((s, i) => (
+            <div key={i} className={`flex-1 ${s.color} ${s.text} rounded-lg py-1.5 text-center`}>
+              <span className="text-[7px] font-black leading-tight block">{s.label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
