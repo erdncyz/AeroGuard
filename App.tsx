@@ -12,6 +12,7 @@ import ForecastChart from './components/ForecastChart';
 import AirQualityGames from './components/AirQualityGames';
 import { shareWithImage } from './services/shareCardService';
 import { fetchPollenData, PollenData } from './services/pollenService';
+import { askHealthQuestion, getHealthAdvice, isGeminiConfigured } from './services/geminiService';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
@@ -33,6 +34,11 @@ const App: React.FC = () => {
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [pollenData, setPollenData] = useState<PollenData | null>(null);
   const [searchedPollenData, setSearchedPollenData] = useState<PollenData | null>(null);
+  const [healthAdvice, setHealthAdvice] = useState('');
+  const [healthAdviceLoading, setHealthAdviceLoading] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [aiAnswer, setAiAnswer] = useState('');
+  const [aiQuestionLoading, setAiQuestionLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('section-aqi');
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -177,9 +183,50 @@ const App: React.FC = () => {
     }
   }, [stationData]);
 
+  // Generate AI health advice for current location data
+  useEffect(() => {
+    let isCancelled = false;
+
+    const generateAdvice = async () => {
+      if (!stationData) {
+        setHealthAdviceLoading(false);
+        setHealthAdvice('');
+        return;
+      }
+
+      if (!isGeminiConfigured()) {
+        setHealthAdviceLoading(false);
+        setHealthAdvice(
+          lang === 'tr'
+            ? 'AI sağlık önerileri için .env dosyasına VITE_GEMINI_API_KEY ekleyin.'
+            : 'Add VITE_GEMINI_API_KEY to your .env file to enable AI health advice.'
+        );
+        return;
+      }
+
+      setHealthAdviceLoading(true);
+      const advice = await getHealthAdvice(stationData, lang);
+
+      if (!isCancelled) {
+        setHealthAdvice(advice);
+        setHealthAdviceLoading(false);
+      }
+    };
+
+    generateAdvice().catch(() => {
+      if (!isCancelled) {
+        setHealthAdviceLoading(false);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [stationData, lang]);
+
   // Scroll-spy: detect which section is in view
   useEffect(() => {
-    const sectionIds = ['section-aqi', 'section-forecast', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
     const visibleSections = new Map<string, number>();
 
     const observer = new IntersectionObserver(
@@ -280,6 +327,29 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAskAi = async () => {
+    if (!stationData || aiQuestionLoading) return;
+
+    if (!isGeminiConfigured()) {
+      setAiAnswer(
+        lang === 'tr'
+          ? 'AI soru-cevap icin .env dosyasina VITE_GEMINI_API_KEY ekleyin.'
+          : 'Add VITE_GEMINI_API_KEY to your .env file to enable AI Q&A.'
+      );
+      return;
+    }
+
+    if (!aiQuestion.trim()) {
+      setAiAnswer(lang === 'tr' ? 'Lutfen bir soru yazin.' : 'Please enter a question.');
+      return;
+    }
+
+    setAiQuestionLoading(true);
+    const answer = await askHealthQuestion(stationData, aiQuestion, lang);
+    setAiAnswer(answer);
+    setAiQuestionLoading(false);
+  };
+
   if (loading && !stationData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -331,6 +401,7 @@ const App: React.FC = () => {
             <div ref={navRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 pr-6" style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
               {[
                 { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
+                { id: 'section-ai', label: lang === 'tr' ? 'AI Sor' : 'Ask AI' },
                 { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
                 { id: 'section-pollen', label: lang === 'tr' ? 'Polen' : 'Pollen' },
                 { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
@@ -461,6 +532,61 @@ const App: React.FC = () => {
                             <span className={`text-sm font-black ${item.color}`}>{item.value}</span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+
+                    <div id="section-ai" className="bg-white rounded-[2rem] p-5 border border-emerald-100 shadow-sm scroll-mt-safe">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">
+                          {lang === 'tr' ? 'AI Sağlık Önerisi' : 'AI Health Advice'}
+                        </h4>
+                        <span className="ml-auto text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">
+                          Gemini
+                        </span>
+                      </div>
+
+                      {healthAdviceLoading ? (
+                        <div className="flex items-center gap-2 text-slate-500 text-xs font-bold">
+                          <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                          {lang === 'tr' ? 'Öneri hazırlanıyor...' : 'Preparing advice...'}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-600 leading-relaxed font-medium whitespace-pre-line">
+                          {healthAdvice}
+                        </p>
+                      )}
+
+                      <div className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">
+                          {lang === 'tr' ? 'AI\'a Soru Sor' : 'Ask AI a Question'}
+                        </label>
+                        <textarea
+                          value={aiQuestion}
+                          onChange={(e) => setAiQuestion(e.target.value)}
+                          rows={3}
+                          placeholder={lang === 'tr' ? 'Ornek: Bugun disarida kosu yapmali miyim?' : 'Example: Is it safe to run outdoors today?'}
+                          className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-700 outline-none focus:border-emerald-300"
+                        />
+                        <button
+                          onClick={handleAskAi}
+                          disabled={aiQuestionLoading}
+                          className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-300 text-white text-[10px] font-black rounded-xl transition-all active:scale-95 uppercase tracking-widest"
+                        >
+                          {aiQuestionLoading
+                            ? (lang === 'tr' ? 'YANIT HAZIRLANIYOR...' : 'GENERATING ANSWER...')
+                            : (lang === 'tr' ? 'SOR' : 'ASK')}
+                        </button>
+
+                        {!!aiAnswer && (
+                          <p className="text-sm text-slate-700 leading-relaxed font-medium bg-emerald-50 border border-emerald-100 rounded-xl p-3 whitespace-pre-line">
+                            {aiAnswer}
+                          </p>
+                        )}
                       </div>
                     </div>
 
