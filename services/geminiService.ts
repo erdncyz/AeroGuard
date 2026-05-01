@@ -62,12 +62,15 @@ const callGemini = async (prompt: string): Promise<string> => {
   return text;
 };
 
+export type AIProvider = 'gemini' | 'groq' | null;
+
 // ─── Unified caller with automatic fallback ───────────────────────────────────
-const callAI = async (prompt: string): Promise<string | null> => {
+const callAI = async (prompt: string): Promise<{ text: string | null; provider: AIProvider }> => {
   // 1. Try Gemini
   if (getGeminiApiKey()) {
     try {
-      return await callGemini(prompt);
+      const text = await callGemini(prompt);
+      return { text, provider: 'gemini' };
     } catch (err) {
       console.warn("Gemini failed, falling back to Groq:", err);
     }
@@ -75,23 +78,32 @@ const callAI = async (prompt: string): Promise<string | null> => {
   // 2. Fallback: Groq
   if (getGroqApiKey()) {
     try {
-      return await callGroq(prompt);
+      const text = await callGroq(prompt);
+      return { text, provider: 'groq' };
     } catch (err) {
       console.warn("Groq also failed:", err);
     }
   }
-  return null;
+  return { text: null, provider: null };
 };
+
+export interface AIResponse {
+  text: string;
+  provider: AIProvider;
+}
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 export const getHealthAdvice = async (
   data: StationData,
   lang: Language = "tr"
-): Promise<string> => {
+): Promise<AIResponse> => {
   if (!isGeminiConfigured()) {
-    return lang === "tr"
-      ? "AI sağlık önerileri için .env dosyasına VITE_GEMINI_API_KEY ekleyin."
-      : "Add VITE_GEMINI_API_KEY to your .env file to enable AI health advice.";
+    return {
+      text: lang === "tr"
+        ? "AI sağlık önerileri için .env dosyasına VITE_GEMINI_API_KEY ekleyin."
+        : "Add VITE_GEMINI_API_KEY to your .env file to enable AI health advice.",
+      provider: null,
+    };
   }
 
   const prompt = `Act as an environmental health expert.
@@ -112,29 +124,35 @@ Return exactly 3 short sentences:
 
 Do not use markdown or bullet points.`;
 
-  const result = await callAI(prompt);
-  return (
-    result ??
-    (lang === "tr"
+  const { text, provider } = await callAI(prompt);
+  return {
+    text: text ?? (lang === "tr"
       ? "Sağlık önerileri şu anda alınamıyor. Lütfen yerel sağlık uyarılarını takip edin."
-      : "Health recommendations are currently unavailable. Please follow local health guidance.")
-  );
+      : "Health recommendations are currently unavailable. Please follow local health guidance."),
+    provider,
+  };
 };
 
 export const askHealthQuestion = async (
   data: StationData,
   question: string,
   lang: Language = "tr"
-): Promise<string> => {
+): Promise<AIResponse> => {
   if (!isGeminiConfigured()) {
-    return lang === "tr"
-      ? "AI soru-cevap için .env dosyasına VITE_GEMINI_API_KEY ekleyin."
-      : "Add VITE_GEMINI_API_KEY to your .env file to enable AI Q&A.";
+    return {
+      text: lang === "tr"
+        ? "AI soru-cevap için .env dosyasına VITE_GEMINI_API_KEY ekleyin."
+        : "Add VITE_GEMINI_API_KEY to your .env file to enable AI Q&A.",
+      provider: null,
+    };
   }
 
   const trimmedQuestion = question.trim();
   if (!trimmedQuestion) {
-    return lang === "tr" ? "Lütfen bir soru yazın." : "Please enter a question.";
+    return {
+      text: lang === "tr" ? "Lütfen bir soru yazın." : "Please enter a question.",
+      provider: null,
+    };
   }
 
   const prompt = `You are an environmental health assistant.
@@ -153,11 +171,11 @@ User question: ${trimmedQuestion}
 Give a concise practical answer in 2-4 sentences.
 Do not use markdown.`;
 
-  const result = await callAI(prompt);
-  return (
-    result ??
-    (lang === "tr"
+  const { text, provider } = await callAI(prompt);
+  return {
+    text: text ?? (lang === "tr"
       ? "Şu anda yanıt üretemiyorum. Birazdan tekrar dener misiniz?"
-      : "I could not generate an answer right now. Please try again shortly.")
-  );
+      : "I could not generate an answer right now. Please try again shortly."),
+    provider,
+  };
 };

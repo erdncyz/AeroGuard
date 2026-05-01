@@ -12,7 +12,7 @@ import ForecastChart from './components/ForecastChart';
 import AirQualityGames from './components/AirQualityGames';
 import { shareWithImage } from './services/shareCardService';
 import { fetchPollenData, PollenData } from './services/pollenService';
-import { askHealthQuestion, getHealthAdvice, isGeminiConfigured } from './services/geminiService';
+import { askHealthQuestion, getHealthAdvice, isGeminiConfigured, AIProvider } from './services/geminiService';
 import { fetchAQIHistory, DailyAQIHistory } from './services/aqiHistoryService';
 import UVIndexCard from './components/UVIndexCard';
 import AQIHistoryChart from './components/AQIHistoryChart';
@@ -40,8 +40,10 @@ const App: React.FC = () => {
   const [aqiHistory, setAqiHistory] = useState<DailyAQIHistory[]>([]);
   const [healthAdvice, setHealthAdvice] = useState('');
   const [healthAdviceLoading, setHealthAdviceLoading] = useState(false);
+  const [healthAdviceProvider, setHealthAdviceProvider] = useState<AIProvider>(null);
   const [aiQuestion, setAiQuestion] = useState('');
   const [aiAnswer, setAiAnswer] = useState('');
+  const [aiAnswerProvider, setAiAnswerProvider] = useState<AIProvider>(null);
   const [aiQuestionLoading, setAiQuestionLoading] = useState(false);
   const [activeSection, setActiveSection] = useState('section-aqi');
   const navRef = useRef<HTMLDivElement>(null);
@@ -214,10 +216,11 @@ const App: React.FC = () => {
       }
 
       setHealthAdviceLoading(true);
-      const advice = await getHealthAdvice(stationData, lang);
+      const { text: advice, provider } = await getHealthAdvice(stationData, lang);
 
       if (!isCancelled) {
         setHealthAdvice(advice);
+        setHealthAdviceProvider(provider);
         setHealthAdviceLoading(false);
       }
     };
@@ -354,8 +357,9 @@ const App: React.FC = () => {
     }
 
     setAiQuestionLoading(true);
-    const answer = await askHealthQuestion(stationData, aiQuestion, lang);
+    const { text: answer, provider: answerProvider } = await askHealthQuestion(stationData, aiQuestion, lang);
     setAiAnswer(answer);
+    setAiAnswerProvider(answerProvider);
     setAiQuestionLoading(false);
   };
 
@@ -556,8 +560,12 @@ const App: React.FC = () => {
                         <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">
                           {lang === 'tr' ? 'AI Sağlık Önerisi' : 'AI Health Advice'}
                         </h4>
-                        <span className="ml-auto text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">
-                          Gemini
+                        <span className={`ml-auto text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${
+                            healthAdviceProvider === 'groq'
+                              ? 'bg-amber-50 text-amber-600'
+                              : 'bg-emerald-50 text-emerald-600'
+                          }`}>
+                          {healthAdviceProvider === 'groq' ? 'Groq' : 'Gemini'}
                         </span>
                       </div>
 
@@ -594,9 +602,18 @@ const App: React.FC = () => {
                         </button>
 
                         {!!aiAnswer && (
-                          <p className="text-sm text-slate-700 leading-relaxed font-medium bg-emerald-50 border border-emerald-100 rounded-xl p-3 whitespace-pre-line">
-                            {aiAnswer}
-                          </p>
+                          <div>
+                            <p className="text-sm text-slate-700 leading-relaxed font-medium bg-emerald-50 border border-emerald-100 rounded-xl p-3 whitespace-pre-line">
+                              {aiAnswer}
+                            </p>
+                            {aiAnswerProvider && (
+                              <p className={`text-[8px] font-black mt-1.5 px-1 uppercase tracking-widest ${
+                                aiAnswerProvider === 'groq' ? 'text-amber-500' : 'text-emerald-500'
+                              }`}>
+                                {aiAnswerProvider === 'groq' ? 'Groq · LLaMA 3.3' : 'Gemini 2.5 Flash'}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
