@@ -33,12 +33,46 @@ const getBarColorO3 = (val: number): string => {
   return '#9333ea';
 };
 
-const getBarColorUV = (val: number): string => {
-  if (val <= 2)   return '#10b981'; // emerald – low
-  if (val <= 5)   return '#f59e0b'; // yellow – moderate
-  if (val <= 7)   return '#f97316'; // orange – high
-  if (val <= 10)  return '#ef4444'; // red – very high
-  return '#9333ea';                 // purple – extreme
+const getTabColor = (metric: Metric) => {
+  switch(metric) {
+    case 'pm25': return { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', icon: '🔬' };
+    case 'pm10': return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: '💨' };
+    case 'o3': return { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', icon: '☀️' };
+    case 'uv': return { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', icon: '🧴' };
+    default: return { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', icon: '📊' };
+  }
+};
+
+const getHealthAdvice = (metric: Metric, todayValue: number, lang: 'tr' | 'en') => {
+  if (metric === 'pm25') {
+    if (todayValue <= 12) return lang === 'tr' ? '✅ Hava temiz, dışarıda aktivite yapabilirsin' : '✅ Air is clean, enjoy outdoor activities';
+    if (todayValue <= 35) return lang === 'tr' ? '⚠️ Hassas gruplar dışarıda sınırlı kalmalı' : '⚠️ Sensitive groups should limit outdoor time';
+    if (todayValue <= 55) return lang === 'tr' ? '🚫 Dışarıdaki aktiviteleri azalt, maske tak' : '🚫 Reduce outdoor activities, wear a mask';
+    if (todayValue <= 150) return lang === 'tr' ? '🏠 İçeride kal, hava temizleyici kullan' : '🏠 Stay indoors, use air purifier';
+    return lang === 'tr' ? '🚨 Dış ortama çıkma! Tıbbi maske gerekli' : '🚨 Do not go outside! Medical mask required';
+  }
+  if (metric === 'pm10') {
+    if (todayValue <= 20) return lang === 'tr' ? '✅ Temiz hava, rahatça nefes al' : '✅ Clean air, breathe freely';
+    if (todayValue <= 50) return lang === 'tr' ? '⚠️ Yaşlılar ve çocuklar dikkat etmeli' : '⚠️ Elderly and children should be careful';
+    if (todayValue <= 100) return lang === 'tr' ? '⚠️ Uzun süreli dışarı çıkışları sınırla' : '⚠️ Limit prolonged outdoor activities';
+    if (todayValue <= 200) return lang === 'tr' ? '🚫 Yorucu aktivitelerden kaçın' : '🚫 Avoid strenuous activities';
+    return lang === 'tr' ? '🏠 İçeride kalmalısın' : '🏠 You should stay indoors';
+  }
+  if (metric === 'o3') {
+    if (todayValue <= 54) return lang === 'tr' ? '✅ Ozon seviyesi aman sınırında' : '✅ Ozone level is safe';
+    if (todayValue <= 70) return lang === 'tr' ? '⚠️ Hassas bireyler dışarıda dikkat etmeli' : '⚠️ Sensitive people should be careful outside';
+    if (todayValue <= 85) return lang === 'tr' ? '⚠️ Çocuk ve yaşlılar içeride kalmalı' : '⚠️ Children and elderly should stay inside';
+    if (todayValue <= 105) return lang === 'tr' ? '🚫 Dışarıdaki aktiviteleri azalt' : '🚫 Reduce outdoor activities';
+    return lang === 'tr' ? '🏠 İçeride kal, spor yapma' : '🏠 Stay inside, do not exercise';
+  }
+  if (metric === 'uv') {
+    if (todayValue <= 2) return lang === 'tr' ? '✅ UV düşük, koruma minimum' : '✅ Low UV, minimal protection needed';
+    if (todayValue <= 5) return lang === 'tr' ? '⚠️ SPF 30+ kullan, 11-16 saatlerde dikkat' : '⚠️ Use SPF 30+, be careful 11am-4pm';
+    if (todayValue <= 7) return lang === 'tr' ? '🧴 SPF 50+ zorunlu, 10-17 saatlerde açık havada kalma' : '🧴 SPF 50+ required, avoid sun 10am-5pm';
+    if (todayValue <= 10) return lang === 'tr' ? '🚫 Güneşe çıkma! SPF 50+, şapka, gözlük' : '🚫 Avoid sun! SPF 50+, hat, sunglasses';
+    return lang === 'tr' ? '🚨 Tehlikeli UV! Açık havada bulunma' : '🚨 Extreme UV! Do not go outside';
+  }
+  return '';
 };
 
 const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
@@ -116,18 +150,28 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
         </div>
 
         {/* Metric Tabs */}
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['pm25', 'pm10', 'o3', 'uv'] as Metric[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setMetric(m)}
-              className={`px-3 py-1.5 text-[9px] font-black rounded-lg transition-all uppercase tracking-wider ${
-                metric === m ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              {metricLabels[m]}
-            </button>
-          ))}
+        <div className="flex gap-2 flex-wrap">
+          {(['pm25', 'pm10', 'o3', 'uv'] as Metric[]).map(m => {
+            const tabColor = getTabColor(m);
+            const isActive = metric === m;
+            return (
+              <button
+                key={m}
+                onClick={() => setMetric(m)}
+                className={`px-4 py-2.5 text-[10px] font-black rounded-xl transition-all uppercase tracking-wider border-2 flex items-center gap-1.5 ${
+                  isActive 
+                    ? `${tabColor.bg} ${tabColor.text} shadow-md` 
+                    : `${tabColor.bg} ${tabColor.text} opacity-40 hover:opacity-60`
+                }`}
+                style={{
+                  borderColor: isActive ? (tabColor.text.split('-')[1] === 'purple' ? '#7c3aed' : tabColor.text.split('-')[1] === 'blue' ? '#2563eb' : tabColor.text.split('-')[1] === 'yellow' ? '#ca8a04' : '#ea580c') : '#e5e7eb'
+                }}
+              >
+                <span className="text-xs">{tabColor.icon}</span>
+                {metricLabels[m]}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -137,11 +181,15 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
         <span>{lang === 'tr' ? 'Trend:' : 'Trend:'} {tc.label[lang]}</span>
       </div>
 
-      {/* Metric description */}
-      <div className="mb-5 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
-        <p className="text-[11px] font-bold text-slate-500 leading-relaxed">
+      {/* Metric description + Today's advice */}
+      <div className={`mt-6 rounded-2xl px-5 py-4 border-2 ${getTabColor(metric).bg} ${getTabColor(metric).text}`}
+        style={{ borderColor: getTabColor(metric).text.split('-')[1] === 'purple' ? '#ddd6fe' : getTabColor(metric).text.split('-')[1] === 'blue' ? '#dbeafe' : getTabColor(metric).text.split('-')[1] === 'yellow' ? '#fef3c7' : '#fed7aa' }}>
+        <p className={`text-[11px] font-bold ${getTabColor(metric).text} leading-relaxed mb-3`}>
           {metricDescriptions[metric][lang]}
         </p>
+        <div className={`text-[10px] font-black ${getTabColor(metric).text} uppercase tracking-wider`}>
+          {getHealthAdvice(metric, values[values.length - 1], lang)}
+        </div>
       </div>
 
       {/* SVG Bar Chart */}
