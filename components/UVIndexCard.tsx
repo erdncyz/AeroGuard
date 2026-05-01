@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface UVDay {
   avg: number;
@@ -52,11 +52,16 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
 
   const today = new Date().toISOString().split('T')[0];
   const todayData = uviForecast.find(d => d.day === today) ?? uviForecast[0];
-  const todayUVI = todayData.max; // Use max for protection guidance
-  const level = getUVLevel(todayUVI);
-  const c = colorMap[level.color];
-  const tips = getTips(todayUVI, lang);
   const upcomingDays = uviForecast.slice(0, 5);
+
+  const [selectedDay, setSelectedDay] = useState<string>(todayData.day);
+  const selectedData = upcomingDays.find(d => d.day === selectedDay) ?? todayData;
+  const selectedUVI = selectedData.max;
+  const isSelectedToday = selectedDay === today;
+
+  const level = getUVLevel(selectedUVI);
+  const c = colorMap[level.color];
+  const tips = getTips(selectedUVI, lang);
 
   return (
     <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
@@ -70,16 +75,16 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
         <h3 className="text-sm font-black text-slate-900 tracking-tight">
           {lang === 'tr' ? 'UV İndeksi' : 'UV Index'}
         </h3>
-        <span className="ml-auto text-[8px] font-black bg-amber-50 text-amber-600 px-2 py-0.5 rounded uppercase tracking-tighter">
-          {lang === 'tr' ? 'Bugün' : 'Today'}
+        <span className={`ml-auto text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${c.light} ${c.text}`}>
+          {isSelectedToday ? (lang === 'tr' ? 'Bugün' : 'Today') : new Date(selectedDay).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
         </span>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
         {/* Left: Big value + gauge */}
         <div className="flex flex-col items-center gap-4 flex-shrink-0 w-full md:w-auto">
-          <div className={`w-32 h-32 rounded-full ${c.bg} text-white flex flex-col items-center justify-center shadow-xl ring-4 ${c.ring}`}>
-            <span className="text-4xl font-black leading-none">{todayUVI}</span>
+          <div className={`w-32 h-32 rounded-full ${c.bg} text-white flex flex-col items-center justify-center shadow-xl ring-4 ${c.ring} transition-all duration-300`}>
+            <span className="text-4xl font-black leading-none">{selectedUVI}</span>
             <span className="text-[9px] font-black uppercase tracking-widest opacity-80 mt-1">UV Max</span>
           </div>
 
@@ -111,8 +116,8 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
             </div>
             <div className="h-3 rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 via-rose-500 to-purple-600 relative shadow-inner">
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-slate-800 shadow-md transition-all"
-                style={{ left: `calc(${uvToPercent(todayUVI)}% - 8px)` }}
+                className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white border-2 border-slate-800 shadow-md transition-all duration-300"
+                style={{ left: `calc(${uvToPercent(selectedUVI)}% - 8px)` }}
               />
             </div>
             <div className="flex justify-between mt-1">
@@ -145,22 +150,25 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
               {upcomingDays.map((d, i) => {
                 const lv = getUVLevel(d.max);
                 const dc = colorMap[lv.color];
-                const isToday = d.day === today;
+                const isDayToday = d.day === today;
                 const date = new Date(d.day);
-                const dayName = isToday
+                const dayName = isDayToday
                   ? (lang === 'tr' ? 'Bugün' : 'Today')
                   : date.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' });
                 return (
-                  <div
+                  <button
                     key={i}
-                    className={`flex-1 rounded-2xl p-2.5 text-center border transition-all ${
-                      isToday ? `${dc.light} ${dc.text} border-current/20 ring-2 ring-offset-1 ${dc.ring}` : 'bg-slate-50 border-slate-100'
+                    onClick={() => setSelectedDay(d.day)}
+                    className={`flex-1 rounded-2xl p-2.5 text-center border transition-all active:scale-95 ${
+                      selectedDay === d.day
+                        ? `${dc.light} ${dc.text} border-current/20 ring-2 ring-offset-1 ${dc.ring}`
+                        : 'bg-slate-50 border-slate-100 hover:border-slate-200'
                     }`}
                   >
-                    <p className={`text-[8px] font-black uppercase ${isToday ? dc.text : 'text-slate-400'}`}>{dayName}</p>
-                    <p className={`text-base font-black mt-0.5 ${isToday ? dc.text : 'text-slate-700'}`}>{d.max}</p>
+                    <p className={`text-[8px] font-black uppercase ${selectedDay === d.day ? dc.text : 'text-slate-400'}`}>{dayName}</p>
+                    <p className={`text-base font-black mt-0.5 ${selectedDay === d.day ? dc.text : 'text-slate-700'}`}>{d.max}</p>
                     <p className="text-[7px] font-bold text-slate-400">{lv.icon}</p>
-                  </div>
+                  </button>
                 );
               })}
             </div>
