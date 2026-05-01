@@ -15,10 +15,12 @@ import { fetchPollenData, PollenData } from './services/pollenService';
 import { askHealthQuestion, getHealthAdvice, isGeminiConfigured, AIProvider } from './services/geminiService';
 import { fetchAQIHistory, DailyAQIHistory } from './services/aqiHistoryService';
 import AQIHistoryChart from './components/AQIHistoryChart';
+import AppDownloadPage from './components/AppDownloadPage';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
   const [loading, setLoading] = useState(true);
+  const [showAppDownloadPage, setShowAppDownloadPage] = useState(false);
   const [stationData, setStationData] = useState<StationData | null>(null);
   const [searchedStationData, setSearchedStationData] = useState<StationData | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -75,6 +77,18 @@ const App: React.FC = () => {
     } catch (err) {
       console.error('Cache kontrolü hatası:', err);
     }
+  }, []);
+
+  // Hash-based routing for download page
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1);
+      setShowAppDownloadPage(hash === 'download' || hash === 'apps');
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const loadLocationData = useCallback(async () => {
@@ -374,6 +388,11 @@ const App: React.FC = () => {
     );
   }
 
+  // Show download page if hash is #download or #apps
+  if (showAppDownloadPage) {
+    return <AppDownloadPage lang={lang} />;
+  }
+
   const aqiMeta = stationData ? getAqiMetadata(stationData.aqi) : null;
   const aqiText = aqiMeta ? t.aqiLevels[aqiMeta.key] : null;
 
@@ -405,6 +424,16 @@ const App: React.FC = () => {
             >
               <span className="text-sm">{lang === 'tr' ? '🇹🇷' : '🇬🇧'}</span>
               <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{lang === 'tr' ? 'TR' : 'EN'}</span>
+            </button>
+
+            {/* Download App Button */}
+            <button
+              onClick={() => window.location.hash = 'download'}
+              className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all active:scale-95 flex-shrink-0 shadow-sm"
+              aria-label="Download app"
+            >
+              <span className="text-sm">📱</span>
+              <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">{lang === 'tr' ? 'İNDİR' : 'DOWNLOAD'}</span>
             </button>
           </header>
 
