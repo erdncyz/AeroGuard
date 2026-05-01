@@ -5,24 +5,16 @@ interface AppDownloadPageProps {
 }
 
 const AppDownloadPage: React.FC<AppDownloadPageProps> = ({ lang }) => {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = /Android/.test(navigator.userAgent);
-
-  // Auto-redirect if on mobile
-  React.useEffect(() => {
-    if (isIOS) {
-      window.location.href = 'https://apps.apple.com/tr/app/aero-guard/id6757016984';
-    } else if (isAndroid) {
-      window.location.href = 'https://play.google.com/store/apps/details?id=com.aeroguardmobile';
-    }
-  }, [isIOS, isAndroid]);
-
   const handleIOSClick = () => {
     window.open('https://apps.apple.com/tr/app/aero-guard/id6757016984', '_blank');
   };
 
   const handleAndroidClick = () => {
     window.open('https://play.google.com/store/apps/details?id=com.aeroguardmobile', '_blank');
+  };
+
+  const handleGoBack = () => {
+    window.location.hash = '';
   };
 
   const content = {
@@ -62,12 +54,18 @@ const AppDownloadPage: React.FC<AppDownloadPageProps> = ({ lang }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-slate-50">
-      {/* Auto-redirect message */}
-      {(isIOS || isAndroid) && (
-        <div className="fixed top-0 left-0 right-0 bg-emerald-500 text-white py-3 text-center font-bold text-sm z-50">
-          {t.autoRedirect}
-        </div>
-      )}
+      {/* Back Button */}
+      <div className="fixed top-4 left-4 z-50">
+        <button
+          onClick={handleGoBack}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 border border-slate-100"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          <span className="text-sm font-bold text-slate-700">{lang === 'tr' ? 'Geri' : 'Back'}</span>
+        </button>
+      </div>
 
       {/* Hero Section */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
