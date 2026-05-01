@@ -133,14 +133,14 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
                 <rect x={x} y={0} width={barWidth} height={chartHeight} rx={8} fill="#f8fafc" />
                 {/* Bar fill */}
                 <rect x={x} y={y} width={barWidth} height={barH} rx={8} fill={color} opacity={isToday ? 1 : 0.75} />
-                {/* Value label */}
+                {/* Value label — inside bar if bar is tall, above if short */}
                 <text
                   x={x + barWidth / 2}
-                  y={y - 4}
+                  y={barH >= 18 ? y + 13 : y - 4}
                   textAnchor="middle"
                   fontSize="9"
                   fontWeight="900"
-                  fill={isToday ? color : '#94a3b8'}
+                  fill={barH >= 18 ? '#fff' : (isToday ? color : '#94a3b8')}
                 >
                   {val > 0 ? val : '—'}
                 </text>
