@@ -4,7 +4,7 @@ import { DailyAQIHistory } from '../services/aqiHistoryService';
 interface AQIHistoryChartProps {
   history: DailyAQIHistory[];
   lang: 'tr' | 'en';
-  uviForecast?: number[];
+  uviForecast?: Array<number | { max?: number; day?: string }>;
 }
 
 type Metric = 'pm25' | 'pm10' | 'o3' | 'uv';
@@ -30,6 +30,14 @@ const getBarColorO3 = (val: number): string => {
   if (val <= 70)  return '#f59e0b';
   if (val <= 85)  return '#f97316';
   if (val <= 105) return '#ef4444';
+  return '#9333ea';
+};
+
+const getBarColorUV = (val: number): string => {
+  if (val <= 2)   return '#10b981';
+  if (val <= 5)   return '#f59e0b';
+  if (val <= 7)   return '#f97316';
+  if (val <= 10)  return '#ef4444';
   return '#9333ea';
 };
 
@@ -75,7 +83,14 @@ const getHealthAdvice = (metric: Metric, todayValue: number, lang: 'tr' | 'en') 
   return '';
 };
 
-const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
+const toLocalISODate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang, uviForecast }) => {
   const [metric, setMetric] = useState<Metric>('pm25');
 
   if (!history || history.length === 0) return null;
@@ -101,8 +116,18 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
     },
   };
 
-  const values = metric === 'uv' 
-    ? (uviForecast || []).slice(0, 7).map(v => v ?? 0)
+  const normalizedUvData = (uviForecast || []).slice(0, 7).map((entry, idx) => {
+    if (typeof entry === 'number') {
+      const date = toLocalISODate(new Date(new Date().getTime() + idx * 24 * 60 * 60 * 1000));
+      return { date, val: entry };
+    }
+
+    const date = entry.day || toLocalISODate(new Date(new Date().getTime() + idx * 24 * 60 * 60 * 1000));
+    return { date, val: entry.max ?? 0 };
+  });
+
+  const values = metric === 'uv'
+    ? normalizedUvData.map(d => d.val)
     : history.map(d => d[metric as keyof DailyAQIHistory] ?? 0);
   const maxVal = Math.max(...values, 1);
 
@@ -127,12 +152,14 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
     return getBarColorO3(val);
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalISODate(new Date());
 
+  const chartTopPadding = 14;
   const chartHeight = 120;
   const barWidth = 28;
   const gap = 12;
-  const svgWidth = history.length * (barWidth + gap) - gap;
+  const dataCount = metric === 'uv' ? normalizedUvData.length : history.length;
+  const svgWidth = Math.max(dataCount * (barWidth + gap) - gap, barWidth);
 
   return (
     <section className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
@@ -195,22 +222,21 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
       {/* SVG Bar Chart */}
       <div className="overflow-x-auto -mx-2 px-2 scrollbar-hide">
         <svg
-          viewBox={`0 0 ${svgWidth} ${chartHeight + 40}`}
+          viewBox={`0 0 ${svgWidth} ${chartTopPadding + chartHeight + 40}`}
           width={Math.max(svgWidth, 280)}
-          height={chartHeight + 40}
+          height={chartTopPadding + chartHeight + 40}
           className="overflow-visible"
         >
-          {(metric === 'uv' ? (uviForecast || []).slice(0, 7).map((v, i) => ({ val: v ?? 0, i, date: new Date(new Date().getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }))
-            : history).map((item, idx) => {
+          {(metric === 'uv' ? normalizedUvData : history).map((item, idx) => {
               const isUV = metric === 'uv';
-              const val = isUV ? (item as any).val : (item as any)[metric] ?? 0;
-              const i = isUV ? (item as any).i : idx;
-              const date = new Date(isUV ? (item as any).date : (item as any).date);
+              const val = isUV ? (item as { date: string; val: number }).val : (item as DailyAQIHistory)[metric as keyof DailyAQIHistory] ?? 0;
+              const i = idx;
+              const date = new Date(isUV ? (item as { date: string; val: number }).date : (item as DailyAQIHistory).date);
               const barH = Math.max((val / maxVal) * chartHeight, 6);
               const x = i * (barWidth + gap);
-              const y = chartHeight - barH;
+              const y = chartTopPadding + chartHeight - barH;
               const color = getColor(val);
-              const isToday = (isUV ? (item as any).date : (item as any).date) === today;
+              const isToday = (isUV ? (item as { date: string; val: number }).date : (item as DailyAQIHistory).date) === today;
               const dayLabel = isToday
                 ? (lang === 'tr' ? 'Bug.' : 'Tod.')
                 : date.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' });
@@ -218,13 +244,13 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
             return (
               <g key={i}>
                 {/* Bar background */}
-                <rect x={x} y={0} width={barWidth} height={chartHeight} rx={8} fill="#f8fafc" />
+                <rect x={x} y={chartTopPadding} width={barWidth} height={chartHeight} rx={8} fill="#f8fafc" />
                 {/* Bar fill */}
                 <rect x={x} y={y} width={barWidth} height={barH} rx={8} fill={color} opacity={isToday ? 1 : 0.75} />
                 {/* Value label — inside bar if bar is tall, above if short */}
                 <text
                   x={x + barWidth / 2}
-                  y={barH >= 18 ? y + 13 : y - 4}
+                  y={barH >= 18 ? y + 13 : Math.max(y - 4, chartTopPadding + 9)}
                   textAnchor="middle"
                   fontSize="9"
                   fontWeight="900"
@@ -235,7 +261,7 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
                 {/* Day label */}
                 <text
                   x={x + barWidth / 2}
-                  y={chartHeight + 16}
+                  y={chartTopPadding + chartHeight + 16}
                   textAnchor="middle"
                   fontSize="9"
                   fontWeight="700"
@@ -245,7 +271,7 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
                 </text>
                 {/* Today dot indicator */}
                 {isToday && (
-                  <circle cx={x + barWidth / 2} cy={chartHeight + 28} r={3} fill={color} />
+                  <circle cx={x + barWidth / 2} cy={chartTopPadding + chartHeight + 28} r={3} fill={color} />
                 )}
               </g>
             );
