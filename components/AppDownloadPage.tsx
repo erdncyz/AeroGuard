@@ -55,10 +55,10 @@ const AppDownloadPage: React.FC<AppDownloadPageProps> = ({ lang }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-slate-50">
       {/* Back Button */}
-      <div className="fixed top-4 left-4 z-50">
+      <div className="fixed top-0 left-0 z-50 pt-safe pl-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <button
           onClick={handleGoBack}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 border border-slate-100"
+          className="flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 border border-slate-100"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -68,7 +68,7 @@ const AppDownloadPage: React.FC<AppDownloadPageProps> = ({ lang }) => {
       </div>
 
       {/* Hero Section */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 pt-20 sm:pt-16">
         <div className="text-center mb-12 sm:mb-16">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-3xl mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
