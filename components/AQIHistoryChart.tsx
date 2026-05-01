@@ -39,6 +39,20 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
 
   const metricLabels: Record<Metric, string> = { pm25: 'PM2.5', pm10: 'PM10', o3: 'O₃' };
   const metricUnits: Record<Metric, string> = { pm25: 'µg/m³', pm10: 'µg/m³', o3: 'ppb' };
+  const metricDescriptions: Record<Metric, { tr: string; en: string }> = {
+    pm25: {
+      tr: 'Akciğer derinliklerine kadar nüfuz eden ince partiküller. Araç egzozu ve endüstriyel dumandan kaynaklanır.',
+      en: 'Fine particles that penetrate deep into the lungs. Mainly from vehicle exhaust and industrial smoke.',
+    },
+    pm10: {
+      tr: 'Toz, toprak ve polenden oluşan kaba partiküller. Burun ve boğazı tahriş eder.',
+      en: 'Coarse particles from dust, soil and pollen. Irritates the nose and throat.',
+    },
+    o3: {
+      tr: 'Güneşli ve sıcak günlerde artan yer seviyesi ozon. Solunum yollarını tahriş eder.',
+      en: 'Ground-level ozone that rises on sunny, hot days. Irritates airways and reduces lung function.',
+    },
+  };
 
   const values = history.map(d => d[metric] ?? 0);
   const maxVal = Math.max(...values, 1);
@@ -102,9 +116,16 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
       </div>
 
       {/* Trend badge */}
-      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black mb-5 ${tc.bg} ${tc.color}`}>
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-black mb-4 ${tc.bg} ${tc.color}`}>
         <span className="text-sm font-black">{tc.icon}</span>
         <span>{lang === 'tr' ? 'Trend:' : 'Trend:'} {tc.label[lang]}</span>
+      </div>
+
+      {/* Metric description */}
+      <div className="mb-5 bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
+        <p className="text-[11px] font-bold text-slate-500 leading-relaxed">
+          {metricDescriptions[metric][lang]}
+        </p>
       </div>
 
       {/* SVG Bar Chart */}
