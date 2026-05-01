@@ -14,7 +14,6 @@ import { shareWithImage } from './services/shareCardService';
 import { fetchPollenData, PollenData } from './services/pollenService';
 import { askHealthQuestion, getHealthAdvice, isGeminiConfigured, AIProvider } from './services/geminiService';
 import { fetchAQIHistory, DailyAQIHistory } from './services/aqiHistoryService';
-import UVIndexCard from './components/UVIndexCard';
 import AQIHistoryChart from './components/AQIHistoryChart';
 
 const App: React.FC = () => {
@@ -238,7 +237,7 @@ const App: React.FC = () => {
 
   // Scroll-spy: detect which section is in view
   useEffect(() => {
-    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-uv', 'section-history', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-history', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
     const visibleSections = new Map<string, number>();
 
     const observer = new IntersectionObserver(
@@ -416,7 +415,6 @@ const App: React.FC = () => {
                 { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
                 { id: 'section-ai', label: lang === 'tr' ? 'AI Sor' : 'Ask AI' },
                 { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
-                { id: 'section-uv', label: lang === 'tr' ? 'UV İndeksi' : 'UV Index' },
                 { id: 'section-history', label: lang === 'tr' ? 'Geçmiş' : 'History' },
                 { id: 'section-pollen', label: lang === 'tr' ? 'Polen' : 'Pollen' },
                 { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
@@ -656,13 +654,6 @@ const App: React.FC = () => {
               {stationData.forecast && (
                 <div id="section-forecast" className="scroll-mt-safe">
                   <ForecastChart forecast={stationData.forecast} lang={lang} />
-                </div>
-              )}
-
-              {/* UV Index Card */}
-              {stationData.forecast?.daily?.uvi && stationData.forecast.daily.uvi.length > 0 && (
-                <div id="section-uv" className="scroll-mt-safe">
-                  <UVIndexCard uviForecast={stationData.forecast.daily.uvi} lang={lang} />
                 </div>
               )}
 
