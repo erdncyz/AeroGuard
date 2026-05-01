@@ -416,25 +416,27 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Language Toggle */}
-            <button
-              onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
-              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all active:scale-95 flex-shrink-0"
-              aria-label="Change language"
-            >
-              <span className="text-sm">{lang === 'tr' ? '🇹🇷' : '🇬🇧'}</span>
-              <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{lang === 'tr' ? 'TR' : 'EN'}</span>
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Language Toggle */}
+              <button
+                onClick={() => setLang(lang === 'tr' ? 'en' : 'tr')}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all active:scale-95"
+                aria-label="Change language"
+              >
+                <span className="text-sm">{lang === 'tr' ? '🇹🇷' : '🇬🇧'}</span>
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{lang === 'tr' ? 'TR' : 'EN'}</span>
+              </button>
 
-            {/* Download App Button */}
-            <button
-              onClick={() => window.location.hash = 'download'}
-              className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all active:scale-95 flex-shrink-0 shadow-sm"
-              aria-label="Download app"
-            >
-              <span className="text-sm">📱</span>
-              <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">{lang === 'tr' ? 'İNDİR' : 'DOWNLOAD'}</span>
-            </button>
+              {/* Download App Button */}
+              <button
+                onClick={() => window.location.hash = 'download'}
+                className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all active:scale-95 shadow-sm"
+                aria-label="Download app"
+              >
+                <span className="text-sm">📱</span>
+                <span className="text-[10px] font-black uppercase tracking-wider hidden sm:inline">{lang === 'tr' ? 'İNDİR' : 'DOWNLOAD'}</span>
+              </button>
+            </div>
           </header>
 
           {/* Navigation Tabs */}
