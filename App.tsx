@@ -660,7 +660,7 @@ const App: React.FC = () => {
               {/* AQI History Chart */}
               {aqiHistory.length > 0 && (
                 <div id="section-history" className="scroll-mt-safe">
-                  <AQIHistoryChart history={aqiHistory} lang={lang} />
+                  <AQIHistoryChart history={aqiHistory} lang={lang} uviForecast={stationData.forecast?.daily?.uvi} />
                 </div>
               )}
 

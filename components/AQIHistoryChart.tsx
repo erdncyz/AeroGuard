@@ -4,9 +4,10 @@ import { DailyAQIHistory } from '../services/aqiHistoryService';
 interface AQIHistoryChartProps {
   history: DailyAQIHistory[];
   lang: 'tr' | 'en';
+  uviForecast?: number[];
 }
 
-type Metric = 'pm25' | 'pm10' | 'o3';
+type Metric = 'pm25' | 'pm10' | 'o3' | 'uv';
 
 const getBarColor = (val: number): string => {
   if (val <= 12)  return '#10b981'; // emerald – good (WHO guideline pm2.5 ≤12)
@@ -32,13 +33,21 @@ const getBarColorO3 = (val: number): string => {
   return '#9333ea';
 };
 
+const getBarColorUV = (val: number): string => {
+  if (val <= 2)   return '#10b981'; // emerald – low
+  if (val <= 5)   return '#f59e0b'; // yellow – moderate
+  if (val <= 7)   return '#f97316'; // orange – high
+  if (val <= 10)  return '#ef4444'; // red – very high
+  return '#9333ea';                 // purple – extreme
+};
+
 const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
   const [metric, setMetric] = useState<Metric>('pm25');
 
   if (!history || history.length === 0) return null;
 
-  const metricLabels: Record<Metric, string> = { pm25: 'PM2.5', pm10: 'PM10', o3: 'O₃' };
-  const metricUnits: Record<Metric, string> = { pm25: 'µg/m³', pm10: 'µg/m³', o3: 'ppb' };
+  const metricLabels: Record<Metric, string> = { pm25: 'PM2.5', pm10: 'PM10', o3: 'O₃', uv: 'UV' };
+  const metricUnits: Record<Metric, string> = { pm25: 'µg/m³', pm10: 'µg/m³', o3: 'ppb', uv: 'Index' };
   const metricDescriptions: Record<Metric, { tr: string; en: string }> = {
     pm25: {
       tr: 'Akciğer derinliklerine kadar nüfuz eden ince partiküller. Araç egzozu ve endüstriyel dumandan kaynaklanır.',
@@ -52,9 +61,15 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
       tr: 'Güneşli ve sıcak günlerde artan yer seviyesi ozon. Solunum yollarını tahriş eder.',
       en: 'Ground-level ozone that rises on sunny, hot days. Irritates airways and reduces lung function.',
     },
+    uv: {
+      tr: 'Ultraviyole radyasyonun yoğunluğu. Yüksek UV endeksi cilt ve göz hasarı riski artırır.',
+      en: 'Intensity of ultraviolet radiation. High UV index increases risk of skin and eye damage.',
+    },
   };
 
-  const values = history.map(d => d[metric] ?? 0);
+  const values = metric === 'uv' 
+    ? (uviForecast || []).slice(0, 7).map(v => v ?? 0)
+    : history.map(d => d[metric as keyof DailyAQIHistory] ?? 0);
   const maxVal = Math.max(...values, 1);
 
   // Trend: compare last 3 days avg vs first 3 days avg
@@ -74,6 +89,7 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
   const getColor = (val: number) => {
     if (metric === 'pm25') return getBarColor(val);
     if (metric === 'pm10') return getBarColorPM10(val);
+    if (metric === 'uv') return getBarColorUV(val);
     return getBarColorO3(val);
   };
 
@@ -101,7 +117,7 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
 
         {/* Metric Tabs */}
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['pm25', 'pm10', 'o3'] as Metric[]).map(m => (
+          {(['pm25', 'pm10', 'o3', 'uv'] as Metric[]).map(m => (
             <button
               key={m}
               onClick={() => setMetric(m)}
@@ -136,17 +152,20 @@ const AQIHistoryChart: React.FC<AQIHistoryChartProps> = ({ history, lang }) => {
           height={chartHeight + 40}
           className="overflow-visible"
         >
-          {history.map((d, i) => {
-            const val = d[metric] ?? 0;
-            const barH = Math.max((val / maxVal) * chartHeight, 6);
-            const x = i * (barWidth + gap);
-            const y = chartHeight - barH;
-            const color = getColor(val);
-            const date = new Date(d.date);
-            const isToday = d.date === today;
-            const dayLabel = isToday
-              ? (lang === 'tr' ? 'Bug.' : 'Tod.')
-              : date.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' });
+          {(metric === 'uv' ? (uviForecast || []).slice(0, 7).map((v, i) => ({ val: v ?? 0, i, date: new Date(new Date().getTime() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }))
+            : history).map((item, idx) => {
+              const isUV = metric === 'uv';
+              const val = isUV ? (item as any).val : (item as any)[metric] ?? 0;
+              const i = isUV ? (item as any).i : idx;
+              const date = new Date(isUV ? (item as any).date : (item as any).date);
+              const barH = Math.max((val / maxVal) * chartHeight, 6);
+              const x = i * (barWidth + gap);
+              const y = chartHeight - barH;
+              const color = getColor(val);
+              const isToday = (isUV ? (item as any).date : (item as any).date) === today;
+              const dayLabel = isToday
+                ? (lang === 'tr' ? 'Bug.' : 'Tod.')
+                : date.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' });
 
             return (
               <g key={i}>
