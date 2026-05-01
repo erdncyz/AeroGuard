@@ -13,6 +13,9 @@ import AirQualityGames from './components/AirQualityGames';
 import { shareWithImage } from './services/shareCardService';
 import { fetchPollenData, PollenData } from './services/pollenService';
 import { askHealthQuestion, getHealthAdvice, isGeminiConfigured } from './services/geminiService';
+import { fetchAQIHistory, DailyAQIHistory } from './services/aqiHistoryService';
+import UVIndexCard from './components/UVIndexCard';
+import AQIHistoryChart from './components/AQIHistoryChart';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
@@ -34,6 +37,7 @@ const App: React.FC = () => {
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [pollenData, setPollenData] = useState<PollenData | null>(null);
   const [searchedPollenData, setSearchedPollenData] = useState<PollenData | null>(null);
+  const [aqiHistory, setAqiHistory] = useState<DailyAQIHistory[]>([]);
   const [healthAdvice, setHealthAdvice] = useState('');
   const [healthAdviceLoading, setHealthAdviceLoading] = useState(false);
   const [aiQuestion, setAiQuestion] = useState('');
@@ -180,6 +184,11 @@ const App: React.FC = () => {
       fetchPollenData(lat, lng)
         .then(res => setPollenData(res.current))
         .catch(() => setPollenData(null));
+
+      // Fetch 7-day AQI history from Open-Meteo
+      fetchAQIHistory(lat, lng)
+        .then(history => setAqiHistory(history))
+        .catch(() => setAqiHistory([]));
     }
   }, [stationData]);
 
@@ -226,7 +235,7 @@ const App: React.FC = () => {
 
   // Scroll-spy: detect which section is in view
   useEffect(() => {
-    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-uv', 'section-history', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
     const visibleSections = new Map<string, number>();
 
     const observer = new IntersectionObserver(
@@ -403,6 +412,8 @@ const App: React.FC = () => {
                 { id: 'section-aqi', label: lang === 'tr' ? 'Hava Kalitesi' : 'Air Quality' },
                 { id: 'section-ai', label: lang === 'tr' ? 'AI Sor' : 'Ask AI' },
                 { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
+                { id: 'section-uv', label: lang === 'tr' ? 'UV İndeksi' : 'UV Index' },
+                { id: 'section-history', label: lang === 'tr' ? 'Geçmiş' : 'History' },
                 { id: 'section-pollen', label: lang === 'tr' ? 'Polen' : 'Pollen' },
                 { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
                 { id: 'section-nearby', label: lang === 'tr' ? 'Yakın İstasyonlar' : 'Nearby Stations' },
@@ -628,6 +639,20 @@ const App: React.FC = () => {
               {stationData.forecast && (
                 <div id="section-forecast" className="scroll-mt-safe">
                   <ForecastChart forecast={stationData.forecast} lang={lang} />
+                </div>
+              )}
+
+              {/* UV Index Card */}
+              {stationData.forecast?.daily?.uvi && stationData.forecast.daily.uvi.length > 0 && (
+                <div id="section-uv" className="scroll-mt-safe">
+                  <UVIndexCard uviForecast={stationData.forecast.daily.uvi} lang={lang} />
+                </div>
+              )}
+
+              {/* AQI History Chart */}
+              {aqiHistory.length > 0 && (
+                <div id="section-history" className="scroll-mt-safe">
+                  <AQIHistoryChart history={aqiHistory} lang={lang} />
                 </div>
               )}
 

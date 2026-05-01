@@ -2,60 +2,99 @@
 import { GoogleGenAI } from "@google/genai";
 import { Language, StationData } from "../types";
 
-const FREE_TIER_MODEL = "gemini-2.5-flash";
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GROQ_MODEL   = "llama-3.3-70b-versatile";
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
-const getGeminiApiKey = (): string => {
-  return (
-    import.meta.env.VITE_GEMINI_API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    process.env.API_KEY ||
-    ""
-  );
+const getGeminiApiKey = (): string =>
+  import.meta.env.VITE_GEMINI_API_KEY ||
+  process.env.GEMINI_API_KEY ||
+  process.env.API_KEY ||
+  "";
+
+const getGroqApiKey = (): string =>
+  import.meta.env.VITE_GROQ_API_KEY || "";
+
+// Returns true when at least one AI provider is configured
+export const isGeminiConfigured = (): boolean =>
+  Boolean(getGeminiApiKey()) || Boolean(getGroqApiKey());
+
+// ─── Groq (fetch-based, no SDK) ───────────────────────────────────────────────
+const callGroq = async (prompt: string): Promise<string> => {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) throw new Error("No Groq key");
+
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 512,
+      temperature: 0.5,
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
+  const json = await res.json();
+  const text: string = json.choices?.[0]?.message?.content ?? "";
+  if (!text.trim()) throw new Error("Groq empty response");
+  return text.trim();
 };
 
-export const isGeminiConfigured = (): boolean => Boolean(getGeminiApiKey());
+// ─── Gemini ──────────────────────────────────────────────────────────────────
+const callGemini = async (prompt: string): Promise<string> => {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) throw new Error("No Gemini key");
 
-const mapGeminiError = (error: unknown, lang: Language): string => {
-  const raw = error instanceof Error ? error.message : String(error || "");
-  const msg = raw.toLowerCase();
+  const ai = new GoogleGenAI({ apiKey });
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: prompt,
+    config: { thinkingConfig: { thinkingBudget: 0 } },
+  });
 
-  if (msg.includes("api key not valid") || msg.includes("api_key_invalid")) {
-    return lang === "tr"
-      ? "Gemini API anahtari gecersiz. Yeni bir key olusturup .env.local dosyasini guncelleyin."
-      : "Gemini API key is invalid. Create a new key and update .env.local.";
-  }
-
-  if (msg.includes("quota") || msg.includes("rate") || msg.includes("429")) {
-    return lang === "tr"
-      ? "Gemini ucretsiz limitine ulasildi. Bir sure sonra tekrar deneyin."
-      : "Gemini free-tier limit reached. Please try again later.";
-  }
-
-  if (msg.includes("permission") || msg.includes("forbidden") || msg.includes("403")) {
-    return lang === "tr"
-      ? "Gemini erisim izni reddedildi. Proje/API izinlerini kontrol edin."
-      : "Gemini access was denied. Check project/API permissions.";
-  }
-
-  return lang === "tr"
-    ? "Gemini baglantisinda bir hata olustu. Anahtar ve proje ayarlarinizi kontrol edin."
-    : "A Gemini connection error occurred. Check your key and project settings.";
+  const text = response.text?.trim() ?? "";
+  if (!text) throw new Error("Gemini empty response");
+  return text;
 };
 
+// ─── Unified caller with automatic fallback ───────────────────────────────────
+const callAI = async (prompt: string): Promise<string | null> => {
+  // 1. Try Gemini
+  if (getGeminiApiKey()) {
+    try {
+      return await callGemini(prompt);
+    } catch (err) {
+      console.warn("Gemini failed, falling back to Groq:", err);
+    }
+  }
+  // 2. Fallback: Groq
+  if (getGroqApiKey()) {
+    try {
+      return await callGroq(prompt);
+    } catch (err) {
+      console.warn("Groq also failed:", err);
+    }
+  }
+  return null;
+};
+
+// ─── Public API ──────────────────────────────────────────────────────────────
 export const getHealthAdvice = async (
   data: StationData,
   lang: Language = "tr"
 ): Promise<string> => {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
+  if (!isGeminiConfigured()) {
     return lang === "tr"
-      ? "AI sağlık önerileri için Gemini API anahtarını ayarlayın."
-      : "Set a Gemini API key to enable AI health advice.";
+      ? "AI sağlık önerileri için .env dosyasına VITE_GEMINI_API_KEY ekleyin."
+      : "Add VITE_GEMINI_API_KEY to your .env file to enable AI health advice.";
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `Act as an environmental health expert.
+  const prompt = `Act as an environmental health expert.
 
 Language: ${lang === "tr" ? "Turkish" : "English"}
 City: ${data.city.name}
@@ -73,25 +112,13 @@ Return exactly 3 short sentences:
 
 Do not use markdown or bullet points.`;
 
-    const response = await ai.models.generateContent({
-      model: FREE_TIER_MODEL,
-      contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 }
-      }
-    });
-
-    if (response.text && response.text.trim()) {
-      return response.text.trim();
-    }
-
-    return lang === "tr"
+  const result = await callAI(prompt);
+  return (
+    result ??
+    (lang === "tr"
       ? "Sağlık önerileri şu anda alınamıyor. Lütfen yerel sağlık uyarılarını takip edin."
-      : "Health recommendations are currently unavailable. Please follow local health guidance.";
-  } catch (error) {
-    console.error("Gemini Error:", error);
-    return mapGeminiError(error, lang);
-  }
+      : "Health recommendations are currently unavailable. Please follow local health guidance.")
+  );
 };
 
 export const askHealthQuestion = async (
@@ -99,23 +126,18 @@ export const askHealthQuestion = async (
   question: string,
   lang: Language = "tr"
 ): Promise<string> => {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
+  if (!isGeminiConfigured()) {
     return lang === "tr"
-      ? "AI soru-cevap için Gemini API anahtarını ayarlayın."
-      : "Set a Gemini API key to enable AI question answering.";
+      ? "AI soru-cevap için .env dosyasına VITE_GEMINI_API_KEY ekleyin."
+      : "Add VITE_GEMINI_API_KEY to your .env file to enable AI Q&A.";
   }
 
   const trimmedQuestion = question.trim();
   if (!trimmedQuestion) {
-    return lang === "tr"
-      ? "Lutfen bir soru yazin."
-      : "Please enter a question.";
+    return lang === "tr" ? "Lütfen bir soru yazın." : "Please enter a question.";
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `You are an environmental health assistant.
+  const prompt = `You are an environmental health assistant.
 
 Language: ${lang === "tr" ? "Turkish" : "English"}
 City: ${data.city.name}
@@ -131,23 +153,11 @@ User question: ${trimmedQuestion}
 Give a concise practical answer in 2-4 sentences.
 Do not use markdown.`;
 
-    const response = await ai.models.generateContent({
-      model: FREE_TIER_MODEL,
-      contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 }
-      }
-    });
-
-    if (response.text && response.text.trim()) {
-      return response.text.trim();
-    }
-
-    return lang === "tr"
-      ? "Su anda yanit uretemedim. Birazdan tekrar dener misiniz?"
-      : "I could not generate an answer right now. Please try again shortly.";
-  } catch (error) {
-    console.error("Gemini Q&A Error:", error);
-    return mapGeminiError(error, lang);
-  }
+  const result = await callAI(prompt);
+  return (
+    result ??
+    (lang === "tr"
+      ? "Şu anda yanıt üretemiyorum. Birazdan tekrar dener misiniz?"
+      : "I could not generate an answer right now. Please try again shortly.")
+  );
 };
