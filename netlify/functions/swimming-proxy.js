@@ -1,3 +1,5 @@
+const https = require('node:https');
+
 const API_BASE = process.env.SWIMMING_API_BASE_URL || 'https://csbsapi.saglik.gov.tr/api/app/portal-public';
 const API_USER = process.env.SWIMMING_API_USER;
 const API_PASSWORD = process.env.SWIMMING_API_PASSWORD;
@@ -6,6 +8,55 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+};
+
+const requestUpstream = (url, method, body, auth) => {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+
+    const req = https.request(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || 443,
+        path: `${parsed.pathname}${parsed.search}`,
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${auth}`,
+        },
+        timeout: 15000,
+      },
+      (res) => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          resolve({
+            statusCode: res.statusCode || 500,
+            contentType: res.headers['content-type'] || 'application/json',
+            body: data,
+          });
+        });
+      }
+    );
+
+    req.on('timeout', () => {
+      req.destroy(new Error('Upstream timeout after 15s'));
+    });
+
+    req.on('error', (err) => {
+      reject(err);
+    });
+
+    if (method !== 'GET' && method !== 'OPTIONS' && body) {
+      req.write(body);
+    }
+
+    req.end();
+  });
 };
 
 exports.handler = async function handler(event) {
@@ -40,26 +91,19 @@ exports.handler = async function handler(event) {
 
     const auth = Buffer.from(`${API_USER}:${API_PASSWORD}`).toString('base64');
 
-    const upstream = await fetch(targetUrl, {
-      method: event.httpMethod,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${auth}`,
-      },
-      body: event.httpMethod === 'GET' ? undefined : event.body,
-    });
-
-    const body = await upstream.text();
+    const upstream = await requestUpstream(targetUrl, event.httpMethod, event.body, auth);
 
     return {
-      statusCode: upstream.status,
+      statusCode: upstream.statusCode,
       headers: {
         ...corsHeaders,
-        'Content-Type': upstream.headers.get('content-type') || 'application/json',
+        'Content-Type': upstream.contentType,
       },
-      body,
+      body: upstream.body,
     };
   } catch (error) {
+    const detail = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
+
     return {
       statusCode: 500,
       headers: {
@@ -68,7 +112,7 @@ exports.handler = async function handler(event) {
       },
       body: JSON.stringify({
         message: 'Swimming proxy failed',
-        detail: error instanceof Error ? error.message : 'Unknown error',
+        detail,
       }),
     };
   }

@@ -1,7 +1,8 @@
 const SWIMMING_API_BASE = '/api/swimming';
+const SWIMMING_API_FALLBACK_BASE = '/.netlify/functions/swimming-proxy';
 
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${SWIMMING_API_BASE}${path}`, {
+const requestWithBase = async <T>(base: string, path: string, init?: RequestInit): Promise<T> => {
+  const response = await fetch(`${base}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -24,6 +25,24 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   }
 
   return response.json();
+};
+
+const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
+  try {
+    return await requestWithBase<T>(SWIMMING_API_BASE, path, init);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : '';
+    const canFallback =
+      message.includes('404') ||
+      message.includes('500') ||
+      message.toLowerCase().includes('failed to fetch');
+
+    if (!canFallback) {
+      throw err;
+    }
+
+    return requestWithBase<T>(SWIMMING_API_FALLBACK_BASE, path, init);
+  }
 };
 
 export interface SwimCity {
