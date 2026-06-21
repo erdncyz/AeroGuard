@@ -42,22 +42,35 @@ if (!API_USER || !API_PASSWORD) {
 
 const auth = Buffer.from(`${API_USER}:${API_PASSWORD}`).toString('base64');
 
-const request = async (endpoint, init = {}) => {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Basic ${auth}`,
-      ...(init.headers || {}),
-    },
-  });
+const request = async (endpoint, init = {}, retries = 1) => {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Request failed ${res.status} for ${endpoint}: ${text.slice(0, 200)}`);
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${auth}`,
+        ...(init.headers || {}),
+      },
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Request failed ${res.status} for ${endpoint}: ${text.slice(0, 200)}`);
+    }
+
+    return res.json();
+  } catch (error) {
+    if (retries > 0) {
+      return request(endpoint, init, retries - 1);
+    }
+    throw error;
   }
-
-  return res.json();
 };
 
 const normalize = (value) =>
@@ -121,43 +134,17 @@ const main = async () => {
 
   const townsByCity = Object.fromEntries(townLists);
 
-  console.log('Fetching areas (paged)...');
-  const pageSize = 250;
-  let skipCount = 0;
-  let totalCount = 0;
-  const areas = [];
-
-  while (true) {
-    const page = await request('/search-swimming-areas', {
-      method: 'POST',
-      body: JSON.stringify({
-        portalTypeId: 1,
-        skipCount,
-        resultCount: pageSize,
-      }),
-    });
-
-    totalCount = page.totalCount || 0;
-    const items = page.items || [];
-    areas.push(...items);
-
-    skipCount += items.length;
-    if (skipCount % 100 === 0 || skipCount >= totalCount) {
-      console.log(`Areas fetched: ${skipCount}/${totalCount}`);
-    }
-
-    if (!items.length || skipCount >= totalCount) {
-      break;
-    }
-  }
+  console.log('Fetching full area ID list...');
+  const allAreaIds = await request('/swimming-area-list?portalTypeId=1&skipCount=0&resultCount=200');
+  console.log(`Total area IDs fetched: ${allAreaIds.length}`);
 
   console.log('Fetching details...');
-  const details = await runConcurrent(areas, 8, async (area, i) => {
+  const details = await runConcurrent(allAreaIds, 20, async (area, i) => {
     const endpoint = `/swimming-area-detail-by-id/${encodeURIComponent(area.id)}`;
     try {
       const detail = await request(endpoint);
-      if ((i + 1) % 100 === 0) {
-        console.log(`Details fetched: ${i + 1}/${areas.length}`);
+      if ((i + 1) % 50 === 0) {
+        console.log(`Details fetched: ${i + 1}/${allAreaIds.length}`);
       }
       return [area.id, pickDetailFields(detail)];
     } catch {
@@ -166,6 +153,17 @@ const main = async () => {
   });
 
   const detailsById = Object.fromEntries(details);
+  const areas = Object.values(detailsById).map((d) => ({
+    id: d.id,
+    name: d.name || '',
+    cityName: d.cityName || '',
+    townName: d.townName || '',
+    qualityClass: d.qualityClass || '',
+    sampleResultExplanation: d.sampleResultExplanation || '',
+    hasBlueFlag: Boolean(d.hasBlueFlag),
+    isProhibited: Boolean(d.isProhibited),
+    prohibitions: d.prohibitions || [],
+  }));
 
   const cityNameById = new Map(cities.map((city) => [city.id, city.name]));
   const townNameById = new Map();
