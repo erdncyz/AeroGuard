@@ -10,56 +10,86 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
 };
 
-const requestUpstream = (url, method, body, auth) => {
+// Custom HTTPS agent with improved TCP settings
+const agent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 1000,
+  maxSockets: 50,
+  maxFreeSockets: 10,
+  timeout: 45000,
+});
+
+const requestUpstream = (url, method, body, auth, retries = 3) => {
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
 
-    const req = https.request(
-      {
-        protocol: parsed.protocol,
-        hostname: parsed.hostname,
-        port: parsed.port || 443,
-        path: `${parsed.pathname}${parsed.search}`,
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${auth}`,
-          'User-Agent': 'AeroGuard-Proxy/1.0',
-          'Connection': 'keep-alive',
+    const makeRequest = () => {
+      const req = https.request(
+        {
+          protocol: parsed.protocol,
+          hostname: parsed.hostname,
+          port: parsed.port || 443,
+          path: `${parsed.pathname}${parsed.search}`,
+          method,
+          agent,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Basic ${auth}`,
+            'User-Agent': 'AeroGuard-Proxy/1.0 (Node.js)',
+            'Connection': 'keep-alive',
+            'Accept': 'application/json',
+          },
+          timeout: 45000,
         },
-        timeout: 30000,
-        keepAlive: true,
-        keepAliveTimeout: 60000,
-      },
-      (res) => {
-        let data = '';
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-        res.on('end', () => {
-          resolve({
-            statusCode: res.statusCode || 500,
-            contentType: res.headers['content-type'] || 'application/json',
-            body: data,
+        (res) => {
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => {
+            data += chunk;
           });
-        });
+          res.on('end', () => {
+            resolve({
+              statusCode: res.statusCode || 500,
+              contentType: res.headers['content-type'] || 'application/json',
+              body: data,
+            });
+          });
+        }
+      );
+
+      req.on('timeout', () => {
+        req.destroy();
+        if (retries > 0) {
+          console.log(`[swimming-proxy] Timeout (${4 - retries}/3 retries), retrying...`);
+          requestUpstream(url, method, body, auth, retries - 1)
+            .then(resolve)
+            .catch(reject);
+        } else {
+          reject(new Error('Upstream timeout after 45s (max retries)'));
+        }
+      });
+
+      req.on('error', (err) => {
+        if (retries > 0 && (err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'ENOTFOUND')) {
+          console.log(`[swimming-proxy] Connection error: ${err.code}, retrying... (${4 - retries}/3)`);
+          setTimeout(() => {
+            requestUpstream(url, method, body, auth, retries - 1)
+              .then(resolve)
+              .catch(reject);
+          }, 1000 * (4 - retries)); // exponential backoff
+        } else {
+          reject(err);
+        }
+      });
+
+      if (method !== 'GET' && method !== 'OPTIONS' && body) {
+        req.write(body);
       }
-    );
 
-    req.on('timeout', () => {
-      req.destroy(new Error('Upstream timeout after 30s'));
-    });
+      req.end();
+    };
 
-    req.on('error', (err) => {
-      reject(err);
-    });
-
-    if (method !== 'GET' && method !== 'OPTIONS' && body) {
-      req.write(body);
-    }
-
-    req.end();
+    makeRequest();
   });
 };
 
