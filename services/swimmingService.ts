@@ -1,5 +1,4 @@
 const SWIMMING_STATIC_CACHE_FULL_URL = '/swimming-cache-full.json';
-const SWIMMING_STATIC_CACHE_LITE_URL = '/swimming-cache-lite.json';
 
 export interface SwimCity {
   id: number;
@@ -80,11 +79,7 @@ const getStaticCache = async (): Promise<SwimStaticCache> => {
     staticCachePromise = fetch(SWIMMING_STATIC_CACHE_FULL_URL)
       .then(async (res) => {
         if (!res.ok) {
-          const liteRes = await fetch(SWIMMING_STATIC_CACHE_LITE_URL);
-          if (!liteRes.ok) {
-            throw new Error(`Static cache fetch failed: full=${res.status}, lite=${liteRes.status}`);
-          }
-          return liteRes.json() as Promise<SwimStaticCache>;
+          throw new Error(`Static full cache fetch failed: ${res.status}`);
         }
         return res.json() as Promise<SwimStaticCache>;
       })
