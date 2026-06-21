@@ -16,6 +16,7 @@ import { askHealthQuestion, getHealthAdvice, isGeminiConfigured, AIProvider } fr
 import { fetchAQIHistory, DailyAQIHistory } from './services/aqiHistoryService';
 import AQIHistoryChart from './components/AQIHistoryChart';
 import AppDownloadPage from './components/AppDownloadPage';
+import SwimmingQualityPanel from './components/SwimmingQualityPanel';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
@@ -251,7 +252,7 @@ const App: React.FC = () => {
 
   // Scroll-spy: detect which section is in view
   useEffect(() => {
-    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-history', 'section-pollen', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
+    const sectionIds = ['section-aqi', 'section-ai', 'section-forecast', 'section-history', 'section-pollen', 'section-swim', 'section-explore', 'section-nearby', 'section-map', 'section-games', 'section-learn'];
     const visibleSections = new Map<string, number>();
 
     const observer = new IntersectionObserver(
@@ -448,6 +449,7 @@ const App: React.FC = () => {
                 { id: 'section-forecast', label: lang === 'tr' ? 'Tahmin & UV' : 'Forecast & UV' },
                 { id: 'section-history', label: lang === 'tr' ? 'Geçmiş' : 'History' },
                 { id: 'section-pollen', label: lang === 'tr' ? 'Polen' : 'Pollen' },
+                { id: 'section-swim', label: lang === 'tr' ? 'Yüzme Suyu' : 'Swim Water' },
                 { id: 'section-explore', label: lang === 'tr' ? 'Şehir Ara' : 'Search City' },
                 { id: 'section-nearby', label: lang === 'tr' ? 'Yakın İstasyonlar' : 'Nearby Stations' },
                 { id: 'section-map', label: lang === 'tr' ? 'Harita' : 'Map' },
@@ -701,6 +703,10 @@ const App: React.FC = () => {
                   <PollenCard pollenData={pollenData} lang={lang} cityName={stationData.city.name} />
                 </section>
               )}
+
+              <section id="section-swim" className="scroll-mt-safe">
+                <SwimmingQualityPanel lang={lang} />
+              </section>
 
               {/* Cascade Location Selection */}
               <section id="section-explore" className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100 scroll-mt-safe">
