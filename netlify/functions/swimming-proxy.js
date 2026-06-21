@@ -24,8 +24,12 @@ const requestUpstream = (url, method, body, auth) => {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Basic ${auth}`,
+          'User-Agent': 'AeroGuard-Proxy/1.0',
+          'Connection': 'keep-alive',
         },
-        timeout: 15000,
+        timeout: 30000,
+        keepAlive: true,
+        keepAliveTimeout: 60000,
       },
       (res) => {
         let data = '';
@@ -44,7 +48,7 @@ const requestUpstream = (url, method, body, auth) => {
     );
 
     req.on('timeout', () => {
-      req.destroy(new Error('Upstream timeout after 15s'));
+      req.destroy(new Error('Upstream timeout after 30s'));
     });
 
     req.on('error', (err) => {
@@ -83,11 +87,22 @@ exports.handler = async function handler(event) {
       };
     }
 
-    const prefix = '/.netlify/functions/swimming-proxy/';
-    const path = event.path.startsWith(prefix) ? event.path.slice(prefix.length) : '';
+    // Parse path: handle both redirect format and direct function path
+    let path = '';
+    
+    if (event.path.startsWith('/.netlify/functions/swimming-proxy/')) {
+      path = event.path.slice('/.netlify/functions/swimming-proxy/'.length);
+    } else if (event.path.startsWith('/api/swimming/')) {
+      path = event.path.slice('/api/swimming/'.length);
+    } else {
+      // Fallback: treat entire path as endpoint
+      path = event.path.replace(/^\/+/, '');
+    }
 
     const query = event.rawQuery ? `?${event.rawQuery}` : '';
     const targetUrl = `${API_BASE}/${path}${query}`;
+    
+    console.log(`[swimming-proxy] path=${event.path}, resolved=${path}, url=${targetUrl}`);
 
     const auth = Buffer.from(`${API_USER}:${API_PASSWORD}`).toString('base64');
 
