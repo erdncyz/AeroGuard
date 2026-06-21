@@ -1,49 +1,4 @@
-const SWIMMING_API_BASE = '/api/swimming';
-const SWIMMING_API_FALLBACK_BASE = '/.netlify/functions/swimming-proxy';
-
-const requestWithBase = async <T>(base: string, path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`${base}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
-  });
-
-  if (!response.ok) {
-    const rawText = await response.text();
-    let detail = rawText;
-
-    try {
-      const parsed = JSON.parse(rawText);
-      detail = parsed?.detail || parsed?.message || rawText;
-    } catch {
-      // Keep raw text as detail when response is not JSON.
-    }
-
-    throw new Error(`Swimming API request failed: ${response.status}${detail ? ` - ${detail}` : ''}`);
-  }
-
-  return response.json();
-};
-
-const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-  try {
-    return await requestWithBase<T>(SWIMMING_API_BASE, path, init);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : '';
-    const canFallback =
-      message.includes('404') ||
-      message.includes('500') ||
-      message.toLowerCase().includes('failed to fetch');
-
-    if (!canFallback) {
-      throw err;
-    }
-
-    return requestWithBase<T>(SWIMMING_API_FALLBACK_BASE, path, init);
-  }
-};
+const SWIMMING_STATIC_CACHE_URL = '/swimming-cache-lite.json';
 
 export interface SwimCity {
   id: number;
@@ -103,12 +58,48 @@ interface SwimSearchPayload {
   resultCount?: number;
 }
 
+interface SwimStaticCache {
+  cities: SwimCity[];
+  townsByCity: Record<string, SwimTown[]>;
+  areas: (SwimArea & { cityNameNormalized?: string; townNameNormalized?: string })[];
+  detailsById: Record<string, SwimAreaDetail>;
+}
+
+let staticCachePromise: Promise<SwimStaticCache> | null = null;
+
+const normalize = (value: string): string =>
+  String(value || '')
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i');
+
+const getStaticCache = async (): Promise<SwimStaticCache> => {
+  if (!staticCachePromise) {
+    staticCachePromise = fetch(SWIMMING_STATIC_CACHE_URL)
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`Static cache fetch failed: ${res.status}`);
+        }
+        return res.json() as Promise<SwimStaticCache>;
+      })
+      .catch((err) => {
+        staticCachePromise = null;
+        throw err;
+      });
+  }
+
+  return staticCachePromise;
+};
+
 export const getSwimmingCities = async (): Promise<SwimCity[]> => {
-  return request<SwimCity[]>('/city-list/1');
+  const cache = await getStaticCache();
+  return cache.cities;
 };
 
 export const getSwimmingTowns = async (cityId: number): Promise<SwimTown[]> => {
-  return request<SwimTown[]>(`/town-list?cityId=${cityId}&portalTypeId=1`);
+  const cache = await getStaticCache();
+  return cache.townsByCity[String(cityId)] || [];
 };
 
 export const searchSwimmingAreas = async (payload: SwimSearchPayload): Promise<SwimSearchResponse> => {
@@ -119,12 +110,64 @@ export const searchSwimmingAreas = async (payload: SwimSearchPayload): Promise<S
     ...payload,
   };
 
-  return request<SwimSearchResponse>('/search-swimming-areas', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+  const cache = await getStaticCache();
+  let filtered = cache.areas;
+
+  if (body.cityId) {
+    const city = cache.cities.find((c) => c.id === body.cityId);
+    const cityNorm = normalize(city?.name || '');
+    filtered = filtered.filter((area) => {
+      const value = area.cityNameNormalized || normalize(area.cityName);
+      return value === cityNorm;
+    });
+  }
+
+  if (body.townId && body.cityId) {
+    const town = (cache.townsByCity[String(body.cityId)] || []).find((t) => t.id === body.townId);
+    const townNorm = normalize(town?.name || '');
+    filtered = filtered.filter((area) => {
+      const value = area.townNameNormalized || normalize(area.townName);
+      return value === townNorm;
+    });
+  }
+
+  const skip = body.skipCount || 0;
+  const take = body.resultCount || 24;
+
+  return {
+    totalCount: filtered.length,
+    items: filtered.slice(skip, skip + take),
+  };
 };
 
 export const getSwimmingAreaDetail = async (id: string): Promise<SwimAreaDetail> => {
-  return request<SwimAreaDetail>(`/swimming-area-detail-by-id/${encodeURIComponent(id)}`);
+  const cache = await getStaticCache();
+  const detail = cache.detailsById[id];
+
+  if (detail) {
+    return detail;
+  }
+
+  const area = cache.areas.find((item) => item.id === id);
+  if (area) {
+    return {
+      id: area.id,
+      cityName: area.cityName,
+      townName: area.townName,
+      name: area.name,
+      code: '',
+      swimmingAreaAdress: '',
+      businessName: '',
+      businessPhone: '',
+      nearestHealthFacility: '',
+      waterTypeName: '',
+      qualityClass: area.qualityClass,
+      sampleResultExplanation: area.sampleResultExplanation,
+      hasBlueFlag: area.hasBlueFlag,
+      isProhibited: area.isProhibited,
+      prohibitions: area.prohibitions,
+    };
+  }
+
+  throw new Error('Swimming area detail not found in static cache');
 };
