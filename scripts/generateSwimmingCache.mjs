@@ -1,6 +1,36 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+const loadEnvLocal = async () => {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env.local');
+    const raw = await fs.readFile(envPath, 'utf8');
+
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) {
+        continue;
+      }
+
+      const idx = trimmed.indexOf('=');
+      if (idx <= 0) {
+        continue;
+      }
+
+      const key = trimmed.slice(0, idx).trim();
+      const value = trimmed.slice(idx + 1).trim();
+
+      if (!(key in process.env)) {
+        process.env[key] = value;
+      }
+    }
+  } catch {
+    // .env.local is optional.
+  }
+};
+
+await loadEnvLocal();
+
 const API_BASE = process.env.SWIMMING_API_BASE_URL || 'https://csbsapi.saglik.gov.tr/api/app/portal-public';
 const API_USER = process.env.SWIMMING_API_USER;
 const API_PASSWORD = process.env.SWIMMING_API_PASSWORD;
@@ -112,7 +142,9 @@ const main = async () => {
     areas.push(...items);
 
     skipCount += items.length;
-    console.log(`Areas fetched: ${skipCount}/${totalCount}`);
+    if (skipCount % 100 === 0 || skipCount >= totalCount) {
+      console.log(`Areas fetched: ${skipCount}/${totalCount}`);
+    }
 
     if (!items.length || skipCount >= totalCount) {
       break;
@@ -162,11 +194,10 @@ const main = async () => {
     },
   };
 
-  const outDir = path.resolve(process.cwd(), 'public/swimming-cache');
-  await fs.mkdir(outDir, { recursive: true });
-  await fs.writeFile(path.join(outDir, 'data.json'), JSON.stringify(data));
+  const outPath = path.resolve(process.cwd(), 'public/swimming-cache-full.json');
+  await fs.writeFile(outPath, JSON.stringify(data));
 
-  console.log(`Done. Wrote ${areas.length} areas to public/swimming-cache/data.json`);
+  console.log(`Done. Wrote ${areas.length} areas to public/swimming-cache-full.json`);
 };
 
 main().catch((err) => {

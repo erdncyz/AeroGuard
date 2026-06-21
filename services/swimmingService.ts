@@ -1,4 +1,4 @@
-const SWIMMING_STATIC_CACHE_URL = '/swimming-cache-lite.json';
+const SWIMMING_STATIC_CACHE_URL = '/swimming-cache-full.json';
 
 export interface SwimCity {
   id: number;

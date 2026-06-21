@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "netlify deploy --prod",
-    "refresh:swim-cache": "node scripts/generateSwimmingLiteCache.mjs"
+    "refresh:swim-cache": "node scripts/generateSwimmingCache.mjs",
+    "refresh:swim-cache:lite": "node scripts/generateSwimmingLiteCache.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",
