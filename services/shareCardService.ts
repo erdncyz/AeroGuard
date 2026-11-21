@@ -137,7 +137,7 @@ export const generateShareCard = async (options: ShareCardOptions): Promise<Blob
   const cityY = badgeY + 80;
   ctx.fillStyle = '#94a3b8';
   ctx.font = '700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  ctx.fillText('📍 ' + (lang === 'tr' ? 'KONUM' : 'LOCATION'), cx, cityY);
+  ctx.fillText('📍 ' + (lang === 'tr' ? 'ÖLÇÜM İSTASYONU' : 'MONITORING STATION'), cx, cityY);
   ctx.fillStyle = '#f1f5f9';
   ctx.font = '900 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   // Truncate long city names
@@ -156,10 +156,10 @@ export const generateShareCard = async (options: ShareCardOptions): Promise<Blob
   const startX = (W - totalW) / 2;
 
   const stats = [
-    { label: 'PM2.5', value: iaqi.pm25?.v, unit: 'µg/m³' },
-    { label: 'PM10', value: iaqi.pm10?.v, unit: 'µg/m³' },
-    { label: 'O₃', value: iaqi.o3?.v, unit: 'ppb' },
-    { label: 'NO₂', value: iaqi.no2?.v, unit: 'ppb' },
+    { label: 'PM2.5', value: iaqi.pm25?.v, unit: 'AQI' },
+    { label: 'PM10', value: iaqi.pm10?.v, unit: 'AQI' },
+    { label: 'O₃', value: iaqi.o3?.v, unit: 'AQI' },
+    { label: 'NO₂', value: iaqi.no2?.v, unit: 'AQI' },
   ];
 
   stats.forEach((stat, i) => {
@@ -183,7 +183,7 @@ export const generateShareCard = async (options: ShareCardOptions): Promise<Blob
 
     ctx.fillStyle = '#f1f5f9';
     ctx.font = '900 36px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-    ctx.fillText(stat.value !== undefined ? String(stat.value) : '—', cardCx, statsY + 74);
+    ctx.fillText(typeof stat.value === 'number' && Number.isFinite(stat.value) && stat.value >= 0 ? String(stat.value) : '—', cardCx, statsY + 74);
 
     ctx.fillStyle = '#475569';
     ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
@@ -230,10 +230,11 @@ export const generateShareCard = async (options: ShareCardOptions): Promise<Blob
 
   ctx.fillStyle = '#475569';
   ctx.font = '700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-  const updateTime = new Date(time.iso).toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US', {
-    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
-  ctx.fillText(updateTime + '  •  aeroguard.netlify.app', cx, footerY + 10);
+  const observationTime = new Date(time.iso);
+  const updateTime = Number.isFinite(observationTime.getTime()) ? observationTime.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short'
+  }) : (lang === 'tr' ? 'Ölçüm saati bilinmiyor' : 'Observation time unknown');
+  ctx.fillText('WAQI · ' + updateTime + (lang === 'tr' ? ' (cihaz saati)' : ' (device time)') + '  •  aeroguard.netlify.app', cx, footerY + 10);
 
   ctx.textAlign = 'left';
 

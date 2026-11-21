@@ -17,6 +17,7 @@ const pollenTypes = [
 ];
 
 const levelLabels = {
+  unknown: { en: 'No data', tr: 'Veri yok' },
   none: { en: 'None', tr: 'Yok' },
   low: { en: 'Low', tr: 'Düşük' },
   moderate: { en: 'Moderate', tr: 'Orta' },
@@ -35,14 +36,15 @@ const getLevelPosition = (value: number | null): number => {
 
 const PollenCard: React.FC<PollenCardProps> = ({ pollenData, lang, cityName }) => {
   const values = [pollenData.alder, pollenData.birch, pollenData.grass, pollenData.mugwort, pollenData.olive, pollenData.ragweed];
-  const hasData = values.some(v => v !== null);
-
   // Find the highest pollen level for the overall indicator
-  const overallMax = Math.max(...values.map(v => v ?? 0));
+  const availableValues = values.filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0);
+  const overallMax = availableValues.length ? Math.max(...availableValues) : null;
   const overallLevel = getPollenLevel(overallMax);
   const overallColor = getPollenColor(overallLevel);
 
-  if (!hasData) return null;
+  const observedAt = pollenData.observedAt ? new Date(pollenData.observedAt) : null;
+  const observationLabel = observedAt && Number.isFinite(observedAt.getTime())
+    ? observedAt.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US') : null;
 
   return (
     <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 shadow-sm border border-slate-100">
@@ -87,12 +89,12 @@ const PollenCard: React.FC<PollenCardProps> = ({ pollenData, lang, cityName }) =
                 </div>
                 <div className="flex items-baseline gap-1.5">
                   <span className={`text-xl font-black ${colors.text} leading-none`}>
-                    {value !== null ? Math.round(value) : '—'}
+                    {typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value * 10) / 10 : '—'}
                   </span>
                   <span className="text-[8px] text-slate-300 font-bold">grains/m³</span>
                 </div>
                 {/* Scale bar */}
-                <div className="mt-3 mb-1">
+                {level !== 'unknown' && <div className="mt-3 mb-1">
                   <div className="h-2 rounded-full bg-gradient-to-r from-emerald-400 via-yellow-400 via-orange-400 to-red-500 relative overflow-visible">
                     <div
                       className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white border-2 border-slate-700 shadow-md transition-all"
@@ -100,10 +102,10 @@ const PollenCard: React.FC<PollenCardProps> = ({ pollenData, lang, cityName }) =
                     />
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-[7px] font-bold text-emerald-500">{lang === 'tr' ? 'İyi' : 'Good'}</span>
-                    <span className="text-[7px] font-bold text-red-500">{lang === 'tr' ? 'Kötü' : 'Bad'}</span>
+                    <span className="text-[7px] font-bold text-emerald-500">{lang === 'tr' ? 'Düşük' : 'Low'}</span>
+                    <span className="text-[7px] font-bold text-red-500">{lang === 'tr' ? 'Yüksek' : 'High'}</span>
                   </div>
-                </div>
+                </div>}
                 <p className={`text-[8px] font-bold ${colors.text} uppercase tracking-tight`}>
                   {levelLabels[level][lang]}
                 </p>
@@ -115,15 +117,15 @@ const PollenCard: React.FC<PollenCardProps> = ({ pollenData, lang, cityName }) =
       {/* Polen Skalası */}
       <div className="mt-4 bg-slate-50/80 rounded-2xl p-4 border border-slate-100">
         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-3">
-          {lang === 'tr' ? 'Polen Skalası (grains/m³)' : 'Pollen Scale (grains/m³)'}
+          {lang === 'tr' ? 'Gösterim amaçlı konsantrasyon skalası (grains/m³)' : 'Indicative concentration scale (grains/m³)'}
         </p>
         <div className="flex gap-2">
           {[
             { label: lang === 'tr' ? '0 Yok' : '0 None', color: 'bg-slate-200', text: 'text-slate-500' },
-            { label: lang === 'tr' ? '1-10 Düşük' : '1-10 Low', color: 'bg-emerald-400', text: 'text-white' },
-            { label: lang === 'tr' ? '11-50 Orta' : '11-50 Moderate', color: 'bg-yellow-400', text: 'text-yellow-900' },
-            { label: lang === 'tr' ? '51-100 Yüksek' : '51-100 High', color: 'bg-orange-400', text: 'text-white' },
-            { label: lang === 'tr' ? '100+ Çok Yüksek' : '100+ Very High', color: 'bg-red-500', text: 'text-white' },
+            { label: lang === 'tr' ? '>0–10 Düşük' : '>0–10 Low', color: 'bg-emerald-400', text: 'text-white' },
+            { label: lang === 'tr' ? '>10–50 Orta' : '>10–50 Moderate', color: 'bg-yellow-400', text: 'text-yellow-900' },
+            { label: lang === 'tr' ? '>50–100 Yüksek' : '>50–100 High', color: 'bg-orange-400', text: 'text-white' },
+            { label: lang === 'tr' ? '>100 Çok Yüksek' : '>100 Very High', color: 'bg-red-500', text: 'text-white' },
           ].map((s, i) => (
             <div key={i} className={`flex-1 ${s.color} ${s.text} rounded-lg py-1.5 text-center`}>
               <span className="text-[7px] font-black leading-tight block">{s.label}</span>
@@ -132,16 +134,12 @@ const PollenCard: React.FC<PollenCardProps> = ({ pollenData, lang, cityName }) =
         </div>
       </div>
 
-      <div className="mt-5 bg-amber-50/60 rounded-2xl p-4 border border-amber-100">
-        <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-2">
-          {lang === 'tr' ? 'Polen Neden Önemli?' : 'Why Does Pollen Matter?'}
-        </h4>
-        <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-          {lang === 'tr'
-            ? 'Polen taneleri mevsimsel alerjilerin en yaygın tetikleyicisidir. Hapşırma, burun tıkanıklığı, göz kaşıntısı ve astım ataklarına neden olabilir. Özellikle çocuklar, yaşlılar ve alerji hastası bireyler yüksek polen dönemlerinde dikkatli olmalıdır. Polen seviyelerini takip etmek, dış mekan aktivitelerinizi planlamanıza ve sağlığınızı korumanıza yardımcı olur.'
-            : 'Pollen grains are the most common trigger of seasonal allergies. They can cause sneezing, nasal congestion, itchy eyes, and asthma attacks. Children, the elderly, and allergy sufferers should be especially cautious during high pollen periods. Tracking pollen levels helps you plan outdoor activities and protect your health.'}
-        </p>
-      </div>
+      <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
+        {lang === 'tr'
+          ? 'Open-Meteo / CAMS model tahmini. Renkler konsantrasyon karşılaştırması içindir; türlere ve kişiye göre değişen alerji riskini göstermez. Kapsama ve mevsime bağlı olarak veri bulunmayabilir.'
+          : 'Open-Meteo / CAMS model forecast. Colors compare concentration, not allergy risk, which varies by species and person. Data may be unavailable outside the covered region or season.'}
+        {observationLabel && <span className="block mt-1">{lang === 'tr' ? 'Tahminin geçerli olduğu saat (cihaz saati): ' : 'Forecast valid time (device time): '}{observationLabel}</span>}
+      </p>
     </div>
   );
 };

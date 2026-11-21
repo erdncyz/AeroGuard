@@ -59,6 +59,7 @@ interface SwimSearchPayload {
 }
 
 interface SwimStaticCache {
+  generatedAt?: string;
   cities: SwimCity[];
   townsByCity: Record<string, SwimTown[]>;
   areas: (SwimArea & { cityNameNormalized?: string; townNameNormalized?: string })[];
@@ -76,7 +77,7 @@ const normalize = (value: string): string =>
 
 const getStaticCache = async (): Promise<SwimStaticCache> => {
   if (!staticCachePromise) {
-    staticCachePromise = fetch(SWIMMING_STATIC_CACHE_FULL_URL)
+    staticCachePromise = fetch(SWIMMING_STATIC_CACHE_FULL_URL, { cache: 'no-cache' })
       .then(async (res) => {
         if (!res.ok) {
           throw new Error(`Static full cache fetch failed: ${res.status}`);
@@ -90,6 +91,11 @@ const getStaticCache = async (): Promise<SwimStaticCache> => {
   }
 
   return staticCachePromise;
+};
+
+export const getSwimmingCacheInfo = async (): Promise<{ generatedAt: string | null }> => {
+  const cache = await getStaticCache();
+  return { generatedAt: cache.generatedAt && Number.isFinite(Date.parse(cache.generatedAt)) ? cache.generatedAt : null };
 };
 
 export const getSwimmingCities = async (): Promise<SwimCity[]> => {

@@ -20,103 +20,46 @@ struct WebView: UIViewRepresentable {
         preferences.allowsContentJavaScript = true
         configuration.defaultWebpagePreferences = preferences
 
-        // Inject Geolocation Polyfill
+        // Keep concurrent geolocation requests separate and honor their timeouts.
         let scriptSource = """
-              navigator.geolocation.getCurrentPosition = function(success, error, options) {
-                window.locationCallbackSuccess = success;
-                window.locationCallbackError = error;
-                window.webkit.messageHandlers.locationHandler.postMessage('getLocation');
-              };
+            (() => {
+                const pending = new Map();
+                let nextId = 0;
+                window.aeroGuardLocationResult = (ids, position, failure) => {
+                    ids.forEach(id => {
+                        const request = pending.get(id);
+                        if (!request) return;
+                        pending.delete(id);
+                        clearTimeout(request.timer);
+                        if (failure) {
+                            if (request.error) request.error(failure);
+                        } else {
+                            request.success(position);
+                        }
+                    });
+                };
+                navigator.geolocation.getCurrentPosition = (success, error, options = {}) => {
+                    if (typeof success !== 'function') throw new TypeError('Success callback required');
+                    const id = String(++nextId);
+                    const request = {success, error, timer: null};
+                    pending.set(id, request);
+                    const timeout = options.timeout === undefined ? Infinity : Math.max(0, Number(options.timeout));
+                    if (Number.isFinite(timeout)) {
+                        request.timer = setTimeout(() => {
+                            if (!pending.delete(id)) return;
+                            window.webkit.messageHandlers.locationHandler.postMessage({requestId: id, cancel: true});
+                            if (error) error({code: 3, message: 'Location request timed out'});
+                        }, timeout);
+                    }
+                    window.webkit.messageHandlers.locationHandler.postMessage({requestId: id});
+                };
+            })();
             """
         let userScript = WKUserScript(
             source: scriptSource, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         configuration.userContentController.addUserScript(userScript)
         configuration.userContentController.add(context.coordinator, name: "locationHandler")
-        configuration.userContentController.add(context.coordinator, name: "aqiHandler")
-
-        // Inject AQI Scanner Script
-        let aqiScriptSource = """
-            setInterval(function() {
-                var location = "Bilinmeyen Konum";
-                var aqi = null;
-                
-                // Strategy 1: Try to find location from page title or meta tags
-                var titleMatch = document.title.match(/(.+?)\\s+(?:Air Quality|Hava Kalitesi)/i);
-                if (titleMatch && titleMatch[1]) {
-                    location = titleMatch[1].trim();
-                }
-                
-                // Strategy 2: Look for location in specific DOM elements
-                if (location === "Bilinmeyen Konum") {
-                    // Try to find city name in h1, h2, or specific classes
-                    var headers = document.querySelectorAll('h1, h2, .city-name, .location-name');
-                    for (var i = 0; i < headers.length; i++) {
-                        var text = headers[i].innerText.trim();
-                        // Filter out common false positives
-                        if (text && 
-                            text.length > 2 && 
-                            text.length < 50 && 
-                            !text.match(/hPa|AQI|PM2\\.5|PM10|O3|NO2|SO2|CO|Hava Kalitesi|Air Quality|Dünyayı Keşfet|ÜLKE|ŞEHİR|İLÇE/i)) {
-                            location = text;
-                            break;
-                        }
-                    }
-                }
-                
-                // Strategy 3: Parse from body text more carefully
-                if (location === "Bilinmeyen Konum") {
-                    var bodyText = document.body.innerText;
-                    var lines = bodyText.split('\\n');
-                    
-                    for (var i = 0; i < lines.length; i++) {
-                        var line = lines[i].trim();
-                        
-                        // Look for city, country pattern
-                        var cityCountryMatch = line.match(/^([A-Za-zÇçĞğİıÖöŞşÜü\\s-]+),\\s*([A-Za-z]+)$/);
-                        if (cityCountryMatch && 
-                            !line.match(/hPa|AQI|PM2\\.5|PM10|O3|NO2|SO2|CO/i)) {
-                            location = cityCountryMatch[1].trim();
-                            break;
-                        }
-                        
-                        // Look for standalone city name before AQI
-                        if (line.includes('AQI') && i > 0) {
-                            for (var j = Math.max(0, i - 3); j < i; j++) {
-                                var prevLine = lines[j].trim();
-                                if (prevLine.length > 2 && 
-                                    prevLine.length < 50 && 
-                                    !prevLine.match(/\\d|hPa|AQI|PM2\\.5|PM10|O3|NO2|SO2|CO|Hava Kalitesi|Air Quality|Dünyayı Keşfet|ÜLKE|ŞEHİR|İLÇE|DAHA FAZLA|Neden Önemli/i) &&
-                                    prevLine.match(/[A-Za-zÇçĞğİıÖöŞşÜü]/)) {
-                                    location = prevLine;
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-                
-                // Find AQI value
-                var text = document.body.innerText;
-                var aqiMatch = text.match(/(\\d+)\\s*\\n*\\s*AQI ENDEKSİ/i);
-                if (!aqiMatch) {
-                    aqiMatch = text.match(/(\\d+)\\s*AQI/i);
-                }
-                
-                if (aqiMatch && aqiMatch[1]) {
-                    aqi = parseInt(aqiMatch[1]);
-                }
-                
-                // Only send if we have valid AQI
-                if (aqi !== null && aqi > 0) {
-                    console.log('📊 AQI:', aqi, 'Location:', location);
-                    window.webkit.messageHandlers.aqiHandler.postMessage({aqi: aqi, location: location});
-                }
-            }, 3000);
-            """
-        let aqiUserScript = WKUserScript(
-            source: aqiScriptSource, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
-        configuration.userContentController.addUserScript(aqiUserScript)
+        configuration.userContentController.add(context.coordinator, name: "airQualityData")
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
@@ -149,6 +92,7 @@ struct WebView: UIViewRepresentable {
         var parent: WebView
         let locationManager = CLLocationManager()
         weak var webView: WKWebView?
+        private var pendingLocationRequests = Set<String>()
 
         init(_ parent: WebView) {
             self.parent = parent
@@ -170,121 +114,141 @@ struct WebView: UIViewRepresentable {
         func userContentController(
             _ userContentController: WKUserContentController, didReceive message: WKScriptMessage
         ) {
+            let origin = message.frameInfo.securityOrigin
+            guard message.frameInfo.isMainFrame,
+                origin.protocol == "https",
+                origin.host == AppConfig.webAppURL.host,
+                (origin.port == 0 || origin.port == 443)
+            else { return }
+
             if message.name == "locationHandler" {
-                if locationManager.authorizationStatus == .notDetermined {
+                guard let body = message.body as? [String: Any],
+                    let requestId = body["requestId"] as? String
+                else { return }
+                if body["cancel"] as? Bool == true {
+                    pendingLocationRequests.remove(requestId)
+                    return
+                }
+                pendingLocationRequests.insert(requestId)
+                switch locationManager.authorizationStatus {
+                case .notDetermined:
                     locationManager.requestWhenInUseAuthorization()
-                } else if locationManager.authorizationStatus == .authorizedWhenInUse
-                    || locationManager.authorizationStatus == .authorizedAlways
-                {
-                    locationManager.requestLocation()
-                } else {
-                    evaluateJS(
-                        "if(window.locationCallbackError) window.locationCallbackError({code: 1, message: 'Permission denied'})"
-                    )
+                case .authorizedWhenInUse, .authorizedAlways:
+                    if pendingLocationRequests.count == 1 { locationManager.requestLocation() }
+                default:
+                    completeLocationRequests(error: ["code": 1, "message": "Permission denied"])
                 }
-            } else if message.name == "aqiHandler" {
-                if let body = message.body as? [String: Any], let aqi = body["aqi"] as? Int {
-                    let webLocation = body["location"] as? String ?? "Bilinmeyen Konum"
-                    print("📍 DEBUG: Received AQI: \(aqi), Location from web: \(webLocation)")
-
-                    if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
-                        // Always update AQI
-                        userDefaults.set(aqi, forKey: "currentAQI")
-                        let analyticsCity = userDefaults.string(forKey: "currentLocation")
-                            ?? "Bilinmeyen Konum"
-                        AnalyticsManager.shared.trackAQIUpdated(aqi: aqi, city: analyticsCity)
-
-                        // Only update location if we don't have a GPS-based location yet
-                        let existingLocation = userDefaults.string(forKey: "currentLocation")
-                        if existingLocation == nil || existingLocation == "Bilinmeyen Konum" {
-                            userDefaults.set(webLocation, forKey: "currentLocation")
-                            print("✅ DEBUG: Saved location from web: \(webLocation)")
-                            AnalyticsManager.shared.trackCityUpdated(city: webLocation, source: "web")
-                            NotificationCenter.default.post(name: .aeroGuardCityUpdated, object: nil)
-                        } else {
-                            print(
-                                "ℹ️ DEBUG: Keeping GPS location: \(existingLocation ?? ""), ignoring web location: \(webLocation)"
-                            )
-                        }
-
-                        userDefaults.synchronize()
-                        print("✅ DEBUG: Saved AQI to App Group: \(aqi)")
-                        WidgetCenter.shared.reloadAllTimelines()
-                        print("🔄 DEBUG: Widget timeline reloaded")
-                    }
-                }
+            } else if message.name == "airQualityData" {
+                saveAirQuality(message.body)
             }
         }
 
+        private struct AirQualityMessage: Decodable {
+            let aqi: Double
+            let stationId: Int
+            let location: String
+            let observedAt: String
+            let latitude: Double
+            let longitude: Double
+        }
+
+        private func saveAirQuality(_ body: Any) {
+            guard let body = body as? [String: Any], JSONSerialization.isValidJSONObject(body),
+                let data = try? JSONSerialization.data(withJSONObject: body),
+                let measurement = try? JSONDecoder().decode(AirQualityMessage.self, from: data),
+                measurement.aqi.isFinite, measurement.aqi >= 0, measurement.aqi <= 10_000,
+                measurement.stationId > 0,
+                CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(
+                    latitude: measurement.latitude, longitude: measurement.longitude))
+            else { return }
+
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            var observationDate = formatter.date(from: measurement.observedAt)
+            if observationDate == nil {
+                formatter.formatOptions = [.withInternetDateTime]
+                observationDate = formatter.date(from: measurement.observedAt)
+            }
+            let stationName = measurement.location.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !stationName.isEmpty,
+                let observationDate,
+                observationDate.timeIntervalSince1970 > 0,
+                observationDate.timeIntervalSinceNow <= 5 * 60,
+                let defaults = UserDefaults(suiteName: AppConfig.appGroupId)
+            else { return }
+
+            // One record prevents a station name and an AQI from different observations mixing.
+            let record: [String: Any] = [
+                "aqi": measurement.aqi,
+                "stationId": measurement.stationId,
+                "location": stationName,
+                "observedAt": observationDate.timeIntervalSince1970,
+                "latitude": measurement.latitude,
+                "longitude": measurement.longitude,
+            ]
+            if let previous = defaults.dictionary(forKey: "currentAirQualityObservation"),
+                NSDictionary(dictionary: previous).isEqual(to: record)
+            { return }
+            defaults.set(record, forKey: "currentAirQualityObservation")
+            defaults.set(stationName, forKey: "currentLocation")
+            AnalyticsManager.shared.trackAQIUpdated(aqi: Int(measurement.aqi.rounded()), city: stationName)
+            AnalyticsManager.shared.trackCityUpdated(city: stationName, source: "station")
+            NotificationCenter.default.post(name: .aeroGuardCityUpdated, object: nil)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+
         // MARK: - CLLocationManagerDelegate
-        func locationManager(
-            _ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus
-        ) {
+        func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+            let status = manager.authorizationStatus
             AnalyticsManager.shared.trackLocationPermission(status: status)
+            guard !pendingLocationRequests.isEmpty else { return }
             if status == .authorizedWhenInUse || status == .authorizedAlways {
                 manager.requestLocation()
-            } else if status == .denied {
-                evaluateJS(
-                    "if(window.locationCallbackError) window.locationCallbackError({code: 1, message: 'Permission denied'})"
-                )
+            } else if status == .denied || status == .restricted {
+                completeLocationRequests(error: ["code": 1, "message": "Permission denied"])
             }
         }
 
         func locationManager(
             _ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]
         ) {
-            guard let location = locations.last else { return }
-            let lat = location.coordinate.latitude
-            let lng = location.coordinate.longitude
-
-            // Reverse geocode to get city name
-            let geocoder = CLGeocoder()
-            geocoder.reverseGeocodeLocation(location) { placemarks, error in
-                if let placemark = placemarks?.first {
-                    var cityName = "Bilinmeyen Konum"
-
-                    if let city = placemark.locality {
-                        cityName = city
-                    } else if let area = placemark.administrativeArea {
-                        cityName = area
-                    } else if let subArea = placemark.subAdministrativeArea {
-                        cityName = subArea
-                    }
-
-                    // Save to App Group immediately
-                    if let userDefaults = UserDefaults(suiteName: AppConfig.appGroupId) {
-                        userDefaults.set(cityName, forKey: "currentLocation")
-                        userDefaults.synchronize()
-                        print("📍 DEBUG: Saved location from GPS: \(cityName)")
-                        AnalyticsManager.shared.trackCityUpdated(city: cityName, source: "gps")
-                        NotificationCenter.default.post(name: .aeroGuardCityUpdated, object: nil)
-                        WidgetCenter.shared.reloadAllTimelines()
-                    }
-                }
+            guard let location = locations.last,
+                CLLocationCoordinate2DIsValid(location.coordinate),
+                location.horizontalAccuracy.isFinite, location.horizontalAccuracy >= 0,
+                location.timestamp.timeIntervalSinceNow >= -120,
+                location.timestamp.timeIntervalSinceNow <= 5
+            else {
+                completeLocationRequests(error: ["code": 2, "message": "No recent valid location fix"])
+                return
             }
-
-            let json = """
-                  {
-                    coords: {
-                      latitude: \(lat),
-                      longitude: \(lng),
-                      altitude: null,
-                      accuracy: \(location.horizontalAccuracy),
-                      altitudeAccuracy: null,
-                      heading: null,
-                      speed: null
-                    },
-                    timestamp: \(Date().timeIntervalSince1970 * 1000)
-                  }
-                """
-
-            evaluateJS("if(window.locationCallbackSuccess) window.locationCallbackSuccess(\(json))")
+            completeLocationRequests(position: [
+                "coords": [
+                    "latitude": location.coordinate.latitude,
+                    "longitude": location.coordinate.longitude,
+                    "accuracy": location.horizontalAccuracy,
+                    "altitude": NSNull(),
+                    "altitudeAccuracy": NSNull(),
+                    "heading": NSNull(),
+                    "speed": NSNull(),
+                ],
+                "timestamp": location.timestamp.timeIntervalSince1970 * 1000,
+            ])
         }
 
         func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-            evaluateJS(
-                "if(window.locationCallbackError) window.locationCallbackError({code: 2, message: 'Position unavailable'})"
-            )
+            completeLocationRequests(error: ["code": 2, "message": "Position unavailable"])
+        }
+
+        private func completeLocationRequests(
+            position: [String: Any]? = nil, error: [String: Any]? = nil
+        ) {
+            guard !pendingLocationRequests.isEmpty else { return }
+            let arguments: [Any] = [Array(pendingLocationRequests), position as Any? ?? NSNull(), error as Any? ?? NSNull()]
+            pendingLocationRequests.removeAll()
+            guard let data = try? JSONSerialization.data(withJSONObject: arguments),
+                let json = String(data: data, encoding: .utf8)
+            else { return }
+            evaluateJS("if(window.aeroGuardLocationResult) window.aeroGuardLocationResult(...\(json))")
         }
 
         private func evaluateJS(_ js: String) {
@@ -296,6 +260,7 @@ struct WebView: UIViewRepresentable {
         // MARK: - WKNavigationDelegate
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!)
         {
+            pendingLocationRequests.removeAll()
             DispatchQueue.main.async {
                 self.parent.isLoading = true
             }
@@ -304,6 +269,7 @@ struct WebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             DispatchQueue.main.async {
                 self.parent.isLoading = false
+                webView.evaluateJavaScript("window.dispatchEvent(new Event('airQualityBridgeReady'))", completionHandler: nil)
             }
         }
 

@@ -16,95 +16,138 @@ class WeatherViewModel: NSObject, ObservableObject {
 
     private let weatherService = WeatherService.shared
     private let locationManager = CLLocationManager()
+    private var requestID = UUID()
+    private var locationRetryCount = 0
+    private var locationRetryTask: Task<Void, Never>?
 
     override init() {
         super.init()
-        setupLocationManager()
-    }
-
-    private func setupLocationManager() {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-
-        // Check authorization status
-        let status = locationManager.authorizationStatus
-        if status == .notDetermined {
-            locationManager.requestWhenInUseAuthorization()
-        } else if status == .authorizedWhenInUse || status == .authorizedAlways {
-            locationManager.requestLocation()
-        }
+        refreshWeather()
     }
 
     func refreshWeather() {
-        let status = locationManager.authorizationStatus
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
+        locationRetryTask?.cancel()
+        locationRetryTask = nil
+        locationRetryCount = 0
+        // Invalidate older requests before waiting for a new GPS fix.
+        requestID = UUID()
+        errorMessage = nil
+        isLoading = true
+        switch locationManager.authorizationStatus {
+        case .authorizedWhenInUse, .authorizedAlways:
             locationManager.requestLocation()
-        } else if status == .notDetermined {
+        case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
+        default:
+            errorMessage = "Konum izni kapalı. Ayarlar'dan konum erişimini açın."
+            isLoading = false
         }
     }
 
     func fetchWeather(for location: CLLocation) async {
+        locationRetryTask?.cancel()
+        locationRetryTask = nil
+        locationRetryCount = 0
+        let activeRequest = UUID()
+        requestID = activeRequest
         isLoading = true
         errorMessage = nil
+        guard CLLocationCoordinate2DIsValid(location.coordinate),
+            location.horizontalAccuracy.isFinite, location.horizontalAccuracy >= 0,
+            location.timestamp.timeIntervalSinceNow >= -120,
+            location.timestamp.timeIntervalSinceNow <= 5
+        else {
+            errorMessage = "Güncel ve geçerli bir konum alınamadı. Yenilemeyi deneyin."
+            isLoading = false
+            return
+        }
 
         do {
+            // Current, hourly and daily values belong to the same WeatherKit response.
             let weather = try await weatherService.weather(for: location)
-            currentWeather = weather.currentWeather
-
-            // Get hourly forecast for next 24 hours
-            let hourlyWeather = try await weatherService.weather(
-                for: location,
-                including: .hourly
-            )
-            hourlyForecast = Array(hourlyWeather.prefix(24))
-
-            // Get daily forecast for next 10 days
-            let dailyWeather = try await weatherService.weather(
-                for: location,
-                including: .daily
-            )
-            dailyForecast = Array(dailyWeather.prefix(10))
-
-            // Get location name
-            let geocoder = CLGeocoder()
-            if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
-                let district = placemark.subLocality ?? placemark.subAdministrativeArea
-                let city = placemark.locality ?? placemark.administrativeArea
-                let country = placemark.country
-
-                if let district, let city {
-                    locationName = "\(district), \(city)"
-                } else if let city {
-                    locationName = city
-                } else {
-                    locationName = "Bilinmeyen Konum"
-                }
-
-                let locationParts = [district, city, country].compactMap { $0 }
-                let dedupedParts = Array(NSOrderedSet(array: locationParts)) as? [String] ?? locationParts
-                locationDetail = dedupedParts.joined(separator: " • ")
-            } else {
-                locationName = "Bilinmeyen Konum"
-                locationDetail = ""
+            let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first
+            guard requestID == activeRequest else { return }
+            guard weather.currentWeather.date.timeIntervalSinceNow >= -3 * 60 * 60,
+                weather.currentWeather.date.timeIntervalSinceNow <= 5 * 60
+            else {
+                errorMessage = "Hava durumu ölçümü güncel değil. Yenilemeyi deneyin."
+                isLoading = false
+                return
             }
 
-            coordinateText = String(
-                format: "%.4f, %.4f",
-                location.coordinate.latitude,
-                location.coordinate.longitude
-            )
-            lastUpdatedAt = Date()
+            let district = placemark?.subLocality ?? placemark?.subAdministrativeArea
+            let city = placemark?.locality ?? placemark?.administrativeArea
+            let parts = [district, city, placemark?.country].compactMap { $0 }
+            let dedupedParts = Array(NSOrderedSet(array: parts)) as? [String] ?? parts
+            let nameParts = [district, city].compactMap { $0 }
+            let dedupedName = Array(NSOrderedSet(array: nameParts)) as? [String] ?? nameParts
+            let name = dedupedName.isEmpty ? "Bilinmeyen Konum" : dedupedName.joined(separator: ", ")
 
+            var calendar = Calendar.current
+            if let timeZone = placemark?.timeZone { calendar.timeZone = timeZone }
+            let now = Date()
+            let currentHour = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+            let currentDay = calendar.startOfDay(for: now)
+
+            // Commit all displayed values together, only for the newest request.
+            currentWeather = weather.currentWeather
+            hourlyForecast = Array(weather.hourlyForecast.filter { $0.date >= currentHour }.prefix(24))
+            dailyForecast = Array(weather.dailyForecast.filter { $0.date >= currentDay }.prefix(10))
+            locationName = name
+            locationDetail = dedupedParts.joined(separator: " • ")
+            coordinateText = String(format: "%.4f, %.4f (±%.0f m)",
+                                    location.coordinate.latitude, location.coordinate.longitude,
+                                    location.horizontalAccuracy)
+            lastUpdatedAt = weather.currentWeather.date
             AnalyticsManager.shared.trackWeatherLoaded(
-                city: locationName,
-                temperatureC: weather.currentWeather.temperature.value
-            )
+                city: name, temperatureC: weather.currentWeather.temperature.converted(to: .celsius).value)
         } catch {
+            guard requestID == activeRequest else { return }
             errorMessage = "Hava durumu alınamadı: \(error.localizedDescription)"
             AnalyticsManager.shared.trackWeatherError(error.localizedDescription)
         }
+        isLoading = false
+    }
 
+    private func handleLocationError(_ error: Error) {
+        let failure = error as NSError
+        if failure.domain == kCLErrorDomain,
+            failure.code == CLError.locationUnknown.rawValue,
+            locationRetryTask != nil { return }
+        // A one-shot request can fail temporarily while Core Location obtains a fix.
+        if failure.domain == kCLErrorDomain,
+            failure.code == CLError.locationUnknown.rawValue,
+            locationRetryCount < 2
+        {
+            locationRetryCount += 1
+            let activeRequest = requestID
+            let delay = UInt64(locationRetryCount) * 2_000_000_000
+            isLoading = true
+            errorMessage = nil
+            locationRetryTask = Task { [weak self] in
+                do { try await Task.sleep(nanoseconds: delay) } catch { return }
+                guard let self, !Task.isCancelled, self.requestID == activeRequest else { return }
+                self.locationRetryTask = nil
+                self.locationManager.requestLocation()
+            }
+            return
+        }
+        locationRetryTask?.cancel()
+        locationRetryTask = nil
+        requestID = UUID()
+        if failure.domain == kCLErrorDomain && failure.code == CLError.denied.rawValue {
+            errorMessage = "Konum izni kapalı. Ayarlar'dan konum erişimini açın."
+        } else if failure.domain == kCLErrorDomain && failure.code == CLError.locationUnknown.rawValue {
+            #if targetEnvironment(simulator)
+            errorMessage = "Simülatör konum üretemedi. Simulator menüsünde Features → Location → Custom Location ile test koordinatlarını seçin; ardından yenileyin."
+            #else
+            errorMessage = "Konum şu anda belirlenemiyor. Açık bir alanda yeniden deneyin ve Konum Servisleri'nin açık olduğunu kontrol edin."
+            #endif
+        } else {
+            errorMessage = "Konum alınamadı. Ağ bağlantısını ve Konum Servisleri'ni kontrol edip yeniden deneyin."
+        }
         isLoading = false
     }
 }
@@ -124,7 +167,6 @@ extension WeatherViewModel: CLLocationManagerDelegate {
         _ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]
     ) {
         guard let location = locations.last else { return }
-
         Task { @MainActor in
             await fetchWeather(for: location)
         }
@@ -132,15 +174,13 @@ extension WeatherViewModel: CLLocationManagerDelegate {
 
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor in
-            errorMessage = "Konum alınamadı: \(error.localizedDescription)"
-            isLoading = false
+            handleLocationError(error)
         }
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let status = manager.authorizationStatus
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
-            manager.requestLocation()
+        Task { @MainActor in
+            refreshWeather()
         }
     }
 }

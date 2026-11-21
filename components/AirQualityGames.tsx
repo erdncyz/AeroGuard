@@ -238,7 +238,7 @@ const fetchRandomCities = async (count: number, cityList: string[]): Promise<Cit
       const stations = await waqiService.searchStations(city);
       const valid = stations.find(s => s.aqi && s.aqi !== '-' && !isNaN(Number(s.aqi)));
       if (valid) {
-        results.push({ name: city, aqi: Number(valid.aqi) });
+        results.push({ name: valid.station.name, aqi: Number(valid.aqi) });
       }
     } catch { /* skip */ }
   }

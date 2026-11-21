@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Language } from '../types';
 import {
   getSwimmingAreaDetail,
   getSwimmingCities,
+  getSwimmingCacheInfo,
   getSwimmingTowns,
   searchSwimmingAreas,
   SwimArea,
@@ -90,6 +91,8 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
   const [detailById, setDetailById] = useState<Record<string, SwimAreaDetail>>({});
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [cacheDate, setCacheDate] = useState<string | null>(null);
+  const areaRequest = useRef(0);
 
   useEffect(() => {
     let mounted = true;
@@ -98,8 +101,9 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
       setLoadingCities(true);
       setError('');
       try {
-        const response = await getSwimmingCities();
+        const [response, info] = await Promise.all([getSwimmingCities(), getSwimmingCacheInfo()]);
         if (mounted) {
+          setCacheDate(info.generatedAt);
           setCities(response.sort((a, b) => a.name.localeCompare(b.name, 'tr')));
         }
       } catch (err) {
@@ -118,6 +122,8 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
   }, [lang]);
 
   useEffect(() => {
+    setTowns([]);
+    setSelectedTownId('');
     if (!selectedCityId) {
       setTowns([]);
       setSelectedTownId('');
@@ -145,7 +151,16 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
     };
   }, [selectedCityId]);
 
+  useEffect(() => {
+    areaRequest.current++;
+    setAreas([]);
+    setTotalCount(0);
+    setSelectedAreaId('');
+    setLoadingAreas(false);
+  }, [selectedCityId, selectedTownId]);
+
   const loadAreas = async () => {
+    const requestId = ++areaRequest.current;
     setLoadingAreas(true);
     setError('');
     try {
@@ -153,16 +168,18 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
         cityId: selectedCityId || undefined,
         townId: selectedTownId || undefined,
       });
+      if (requestId !== areaRequest.current) return;
       setAreas(result.items || []);
       setTotalCount(result.totalCount || 0);
       setSelectedAreaId('');
       setDetailError('');
     } catch (err) {
+      if (requestId !== areaRequest.current) return;
       setError(getSwimApiErrorMessage(err, lang));
       setAreas([]);
       setTotalCount(0);
     } finally {
-      setLoadingAreas(false);
+      if (requestId === areaRequest.current) setLoadingAreas(false);
     }
   };
 
@@ -224,6 +241,12 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
           </p>
         </div>
       </div>
+
+      <p role="status" className="mb-4 rounded-xl bg-amber-50 border border-amber-100 p-3 text-xs text-amber-800">
+        {lang === 'tr'
+          ? `Arşiv kaydı · Dosya güncellemesi: ${formatDate(cacheDate ?? undefined, lang)}. Bu tarih numune tarihi değildir; kayıtlar güncel su kalitesini veya bugünkü yüzme yasağını doğrulamaz.`
+          : `Archived snapshot · File updated: ${formatDate(cacheDate ?? undefined, lang)}. This is not the sample date; these records do not establish current water quality or today's swimming restrictions.`}
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
         <div className="md:col-span-2">
@@ -333,7 +356,7 @@ const SwimmingQualityPanel: React.FC<Props> = ({ lang }) => {
 
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className="text-[10px] text-slate-600 font-bold">
-                      {lang === 'tr' ? 'Son Sonuc:' : 'Last Result:'} {area.sampleResultExplanation || '-'}
+                      {lang === 'tr' ? 'Kaydedilmiş sonuç:' : 'Recorded result:'} {area.sampleResultExplanation || '-'}
                     </span>
                     {area.hasBlueFlag && (
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">

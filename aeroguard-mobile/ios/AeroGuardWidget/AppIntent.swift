@@ -9,11 +9,8 @@ import AppIntents
 import WidgetKit
 
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "Konum Ayarları" }
-    static var description: IntentDescription { "Hava kalitesi takip edilecek konumu seçin." }
-
-    // Örnek parametre: Şehir seçimi (İleride genişletilebilir)
-    // Şimdilik varsayılan bırakıyoruz.
-    @Parameter(title: "Şehir", default: "Mevcut Konum")
-    var city: String
+    static var title: LocalizedStringResource { "Son Ölçüm İstasyonu" }
+    static var description: IntentDescription {
+        "Widget, AeroGuard uygulamasında belirlenen son ölçüm istasyonunu takip eder."
+    }
 }

@@ -1,6 +1,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { Language, StationData } from "../types";
+import { getAqiMetadata } from "../constants";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const GROQ_MODEL   = "llama-3.3-70b-versatile";
@@ -92,6 +93,33 @@ export interface AIResponse {
   provider: AIProvider;
 }
 
+const stationContext = (data: StationData): string => {
+  const observationTime = Date.parse(data.time.iso);
+  const match = data.time.tz.match(/^([+-])(\d{2}):(\d{2})$/);
+  const offsetMinutes = match ? (Number(match[2]) * 60 + Number(match[3])) * (match[1] === '-' ? -1 : 1) : null;
+  const localTime = Number.isFinite(observationTime) && offsetMinutes !== null
+    ? new Date(observationTime + offsetMinutes * 60000).toISOString().slice(0, 19).replace('T', ' ') + ' UTC' + data.time.tz
+    : 'Unknown station-local observation time';
+  const ageMinutes = Number.isFinite(observationTime) ? Math.max(0, Math.floor((Date.now() - observationTime) / 60000)) : null;
+  const freshness = ageMinutes === null ? 'Unknown age' : ageMinutes > 180 ? 'STALE: older than 3 hours; not current conditions' : 'Recent station report';
+  return `Source: WAQI monitoring station, not a measurement at the user's exact location.
+Station: ${data.city.name}
+Station coordinates (latitude, longitude): ${data.city.geo.join(', ')}
+Station-local observation timestamp: ${localTime}
+Observation timestamp in UTC: ${data.time.iso}
+Observation age in minutes: ${ageMinutes ?? 'Unknown'}
+Freshness: ${freshness}
+Current UTC time: ${new Date().toISOString()}
+Overall AQI: ${data.aqi}
+Reported US AQI category: ${getAqiMetadata(data.aqi).key}
+PM2.5 individual AQI: ${data.iaqi.pm25?.v ?? 'N/A'}
+PM10 individual AQI: ${data.iaqi.pm10?.v ?? 'N/A'}
+Ozone (O3) individual AQI: ${data.iaqi.o3?.v ?? 'N/A'}
+Nitrogen Dioxide (NO2) individual AQI: ${data.iaqi.no2?.v ?? 'N/A'}
+Temperature: ${data.iaqi.t?.v ?? 'N/A'} °C
+Pollutant AQI values are dimensionless indices, NOT µg/m³, ppb, or ppm. Never reinterpret or convert them as raw concentrations. N/A means no measurement, not zero. Respect the observation time: if older than 3 hours, describe it as older station data, not current conditions. Do not infer exact personal exposure, a diagnosis, or concentrations from these indices. If you mention any time, include its explicit UTC offset; never report UTC as an unlabeled local time.`;
+};
+
 // ─── Public API ──────────────────────────────────────────────────────────────
 export const getHealthAdvice = async (
   data: StationData,
@@ -109,13 +137,9 @@ export const getHealthAdvice = async (
   const prompt = `Act as an environmental health expert.
 
 Language: ${lang === "tr" ? "Turkish" : "English"}
-City: ${data.city.name}
-AQI: ${data.aqi}
-PM2.5: ${data.iaqi.pm25?.v ?? "N/A"}
-PM10: ${data.iaqi.pm10?.v ?? "N/A"}
-Ozone (O3): ${data.iaqi.o3?.v ?? "N/A"}
-Nitrogen Dioxide (NO2): ${data.iaqi.no2?.v ?? "N/A"}
-Temperature: ${data.iaqi.t?.v ?? "N/A"}°C
+${stationContext(data)}
+
+Do not repeat numeric readings, dates, or times: the authoritative readings are already displayed in the app. Base the advice on the reported AQI category and freshness only, and do not call stale data current.
 
 Return exactly 3 short sentences:
 1) Advice for general public
@@ -158,17 +182,11 @@ export const askHealthQuestion = async (
   const prompt = `You are an environmental health assistant.
 
 Language: ${lang === "tr" ? "Turkish" : "English"}
-City: ${data.city.name}
-AQI: ${data.aqi}
-PM2.5: ${data.iaqi.pm25?.v ?? "N/A"}
-PM10: ${data.iaqi.pm10?.v ?? "N/A"}
-Ozone (O3): ${data.iaqi.o3?.v ?? "N/A"}
-Nitrogen Dioxide (NO2): ${data.iaqi.no2?.v ?? "N/A"}
-Temperature: ${data.iaqi.t?.v ?? "N/A"}°C
+${stationContext(data)}
 
 User question: ${trimmedQuestion}
 
-Give a concise practical answer in 2-4 sentences.
+Give a concise practical answer in 2-4 sentences. If the user asks about measurement time, use the station-local observation timestamp and state its UTC offset. Treat stale station reports as older data, not current exposure.
 Do not use markdown.`;
 
   const { text, provider } = await callAI(prompt);

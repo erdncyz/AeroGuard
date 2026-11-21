@@ -9,132 +9,260 @@ import SwiftUI
 import WidgetKit
 
 struct Provider: AppIntentTimelineProvider {
+    private let maximumObservationAge: TimeInterval = 3 * 60 * 60
+
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(
-            date: Date(), aqi: 45, status: "İyi", location: "San Francisco",
-            configuration: ConfigurationAppIntent())
+        SimpleEntry(date: Date(), aqi: nil, status: "Veri yok", location: "Konum bekleniyor",
+                    observedAt: nil, configuration: ConfigurationAppIntent())
     }
 
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async
-        -> SimpleEntry
-    {
-        // Mock data for snapshot
-        SimpleEntry(
-            date: Date(), aqi: 32, status: "İyi", location: "San Francisco",
-            configuration: configuration)
+    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
+        entry(for: configuration, at: Date())
     }
 
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<
-        SimpleEntry
-    > {
-        var entries: [SimpleEntry] = []
-        let currentDate = Date()
+    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
+        await WidgetStationRefresher.refreshLastStation()
+        let now = Date()
+        let current = entry(for: configuration, at: now)
+        var entries = [current]
+        // Expire the displayed observation even if iOS delays the next network refresh.
+        if current.aqi != nil, let observationDate = current.observedAt {
+            let expiration = observationDate.addingTimeInterval(maximumObservationAge + 1)
+            entries.append(SimpleEntry(date: expiration, aqi: nil, status: "Veri eski",
+                                       location: current.location, observedAt: observationDate,
+                                       configuration: configuration))
+        }
+        // This is a requested reload time; WidgetKit controls the actual schedule.
+        return Timeline(entries: entries, policy: .after(now.addingTimeInterval(30 * 60)))
+    }
 
-        // Read real data from App Group
-        let userDefaults = UserDefaults(suiteName: "group.com.aeroguardios.app")
-        let realAQI = userDefaults?.integer(forKey: "currentAQI") ?? 0
-        let realLocation = userDefaults?.string(forKey: "currentLocation") ?? "Bilinmeyen Konum"
+    private struct CachedObservation: Decodable {
+        let stationId: Int
+        let aqi: Double
+        let location: String
+        let observedAt: Double
+    }
 
-        print("🔍 WIDGET DEBUG: Reading from App Group")
-        print("   - AQI: \(realAQI)")
-        print("   - Location: \(realLocation)")
+    private func validObservation(_ record: [String: Any]?, at date: Date) -> CachedObservation? {
+        guard let record, JSONSerialization.isValidJSONObject(record),
+            let data = try? JSONSerialization.data(withJSONObject: record),
+            let observation = try? JSONDecoder().decode(CachedObservation.self, from: data),
+            observation.stationId > 0,
+            observation.aqi.isFinite, observation.aqi >= 0, observation.aqi <= 10_000,
+            !observation.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            observation.observedAt.isFinite, observation.observedAt > 0,
+            observation.observedAt <= date.timeIntervalSince1970 + 5 * 60
+        else { return nil }
+        return observation
+    }
 
-        // Define status based on AQI
+    private func entry(for configuration: ConfigurationAppIntent, at date: Date) -> SimpleEntry {
+        let defaults = UserDefaults(suiteName: "group.com.aeroguardios.app")
+        let appRecord = defaults?.dictionary(forKey: "currentAirQualityObservation")
+        var observation = validObservation(appRecord, at: date)
+        if let appObservation = observation,
+            let widgetObservation = validObservation(defaults?.dictionary(forKey: "widgetAirQualityObservation"), at: date),
+            widgetObservation.stationId == appObservation.stationId,
+            widgetObservation.observedAt >= appObservation.observedAt
+        {
+            observation = widgetObservation
+        }
+        let location = observation?.location ?? "Konum bekleniyor"
+        let observedAt = observation.map { Date(timeIntervalSince1970: $0.observedAt) }
+        let fresh = observedAt.map { date.timeIntervalSince($0) <= maximumObservationAge } ?? false
+        let aqi = fresh ? observation?.aqi : nil
         let status: String
-        let colorAQI: Int
-
-        if realAQI > 0 {
-            colorAQI = realAQI
-            if realAQI <= 50 {
-                status = "İyi"
-            } else if realAQI <= 100 {
-                status = "Orta"
-            } else if realAQI <= 150 {
-                status = "Hassas"
-            } else {
-                status = "Kötü"
+        if let aqi {
+            switch aqi {
+            case ...50: status = "İyi"
+            case ...100: status = "Orta"
+            case ...150: status = "Hassas"
+            case ...200: status = "Sağlıksız"
+            case ...300: status = "Çok sağlıksız"
+            default: status = "Tehlikeli"
             }
         } else {
-            // MOCK DATA (Fallback if no data yet)
-            colorAQI = 42
-            status = "İyi"
+            status = observedAt != nil ? "Veri eski" : "Veri yok"
         }
-
-        // Create the entry with real location
-        let entry = SimpleEntry(
-            date: currentDate, aqi: colorAQI, status: status, location: realLocation,
-            configuration: configuration)
-        entries.append(entry)
-
-        print("✅ WIDGET DEBUG: Created entry with location: \(realLocation)")
-
-        return Timeline(entries: entries, policy: .after(Date().addingTimeInterval(15 * 60)))  // Refresh every 15 mins
+        return SimpleEntry(date: date, aqi: aqi, status: status, location: location,
+                           observedAt: observedAt, configuration: configuration)
     }
 }
 
 struct SimpleEntry: TimelineEntry {
     let date: Date
-    let aqi: Int
+    let aqi: Double?
     let status: String
     let location: String
+    let observedAt: Date?
     let configuration: ConfigurationAppIntent
 }
 
 struct AeroGuardWidgetEntryView: View {
-    var entry: Provider.Entry
+    let entry: Provider.Entry
+    @Environment(\.widgetFamily) private var family
 
-    var colorForAQI: Color {
-        switch entry.aqi {
-        case 0...50: return Color.green
-        case 51...100: return Color.yellow
-        case 101...150: return Color.orange
-        case 151...200: return Color.red
-        default: return Color.purple
+    private var aqiText: String {
+        entry.aqi.map { $0.formatted(.number.precision(.fractionLength(0...1))) } ?? "—"
+    }
+
+    private var colorForAQI: Color {
+        guard let aqi = entry.aqi else { return .secondary }
+        switch aqi {
+        case ...50: return .green
+        case ...100: return .yellow
+        case ...150: return .orange
+        case ...200: return .red
+        case ...300: return .purple
+        default: return Color(red: 0.5, green: 0, blue: 0.15)
         }
     }
 
-    // Dark text color for white background
-    private let darkTextColor = Color(red: 0.1, green: 0.1, blue: 0.1)
-    private let secondaryTextColor = Color(red: 0.4, green: 0.4, blue: 0.4)
+    private var accessibilityText: String {
+        let reading = entry.aqi == nil ? "AQI verisi yok" : "AQI \(aqiText)"
+        let time = entry.observedAt.map {
+            "Ölçüm zamanı \($0.formatted(date: .abbreviated, time: .shortened))"
+        } ?? "Ölçüm zamanı bilinmiyor"
+        return "AeroGuard. \(reading). \(entry.status). İstasyon: \(entry.location). \(time)."
+    }
 
     var body: some View {
+        familyContent
+            .containerBackground(for: .widget) {
+                if family == .systemSmall || family == .systemMedium {
+                    Color(uiColor: .systemBackground)
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
+    }
+
+    @ViewBuilder
+    private var familyContent: some View {
+        switch family {
+        case .accessoryCircular:
+            circularAccessory
+        case .accessoryRectangular:
+            rectangularAccessory
+        case .accessoryInline:
+            Label("AQI \(aqiText) · \(entry.status) · \(entry.location)",
+                  systemImage: entry.aqi == nil ? "exclamationmark.circle" : "wind")
+        case .systemMedium:
+            mediumHome
+        default:
+            smallHome
+        }
+    }
+
+    private var circularAccessory: some View {
         ZStack {
-            // White background
-            ContainerRelativeShape()
-                .fill(Color.white)
+            AccessoryWidgetBackground()
+            VStack(spacing: 0) {
+                Text("AQI")
+                    .font(.caption2)
+                Text(aqiText)
+                    .font(.title3.bold())
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.6)
+                Text(entry.status)
+                    .font(.caption2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+        }
+    }
 
-            VStack(alignment: .leading) {
-                HStack {
-                    Image(systemName: "wind")
-                        .font(.caption)
-                    Text("AeroGuard")
-                        .font(.caption)
-                        .bold()
-                }
-                .foregroundColor(secondaryTextColor)
+    private var rectangularAccessory: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label("AQI \(aqiText) · \(entry.status)",
+                  systemImage: entry.aqi == nil ? "exclamationmark.circle" : "wind")
+                .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(entry.location)
+                .font(.caption)
+                .lineLimit(1)
+            observationTime
+                .font(.caption2)
+        }
+    }
 
-                Spacer()
+    private var smallHome: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label("AeroGuard", systemImage: "wind")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 3)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(aqiText)
+                    .font(.largeTitle.bold())
+                    .monospacedDigit()
+                    .foregroundStyle(colorForAQI)
+                    .minimumScaleFactor(0.6)
+                Text("AQI")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Text(entry.status)
+                .font(.headline)
+                .foregroundStyle(colorForAQI)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(entry.location)
+                .font(.caption2)
+                .lineLimit(1)
+            observationTime
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
 
-                HStack(alignment: .lastTextBaseline) {
-                    Text("\(entry.aqi)")
-                        .font(.system(size: 34, weight: .heavy, design: .rounded))
-                        .foregroundColor(colorForAQI)
+    private var mediumHome: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("AeroGuard", systemImage: "wind")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(aqiText)
+                        .font(.largeTitle.bold())
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.6)
                     Text("AQI")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(.bottom, 4)
-                        .foregroundColor(darkTextColor)
+                        .font(.caption2)
                 }
-
+                .foregroundStyle(colorForAQI)
                 Text(entry.status)
                     .font(.headline)
-                    .foregroundColor(colorForAQI)
-
-                Text(entry.location)
-                    .font(.caption2)
-                    .foregroundColor(secondaryTextColor)
+                    .foregroundStyle(colorForAQI)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(entry.location)
+                    .font(.subheadline.bold())
+                    .lineLimit(3)
+                Text("İstasyon ölçümü")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                observationTime
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private var observationTime: some View {
+        if let observedAt = entry.observedAt {
+            Text(observedAt, format: .dateTime.day().month(.twoDigits).hour().minute())
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        } else {
+            Text("Ölçüm bekleniyor")
+                .lineLimit(1)
         }
     }
 }
@@ -147,11 +275,10 @@ struct AeroGuardWidget: Widget {
             kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()
         ) { entry in
             AeroGuardWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Hava Kalitesi Widget'ı")
-        .description("Ana ekranınıza ekleyerek hava kalitesini anında görün.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .configurationDisplayName("AeroGuard Hava Kalitesi")
+        .description("Uygulamada belirlenen son istasyonu ana ekranınızda ve kilit ekranınızda izleyin.")
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular, .accessoryInline])
     }
 }
 
@@ -159,10 +286,8 @@ struct AeroGuardWidget: Widget {
 #Preview(as: .systemSmall) {
     AeroGuardWidget()
 } timeline: {
-    SimpleEntry(
-        date: .now, aqi: 42, status: "İyi", location: "San Francisco",
-        configuration: ConfigurationAppIntent())
-    SimpleEntry(
-        date: .now, aqi: 75, status: "Orta", location: "San Francisco",
-        configuration: ConfigurationAppIntent())
+    SimpleEntry(date: .now, aqi: nil, status: "Veri yok", location: "Konum bekleniyor",
+                observedAt: nil, configuration: ConfigurationAppIntent())
+    SimpleEntry(date: .now, aqi: 75, status: "Orta", location: "İstanbul",
+                observedAt: .now, configuration: ConfigurationAppIntent())
 }

@@ -8,6 +8,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
+    "test:data": "node scripts/check-data-accuracy.mjs && node scripts/check-widget-refresh.mjs && node scripts/check-weather-location.mjs",
     "pods": "cd ios && bundle exec pod install && cd ..",
     "clean": "cd android && ./gradlew clean && cd .. && cd ios && xcodebuild clean && cd ..",
     "reset": "watchman watch-del-all && rm -rf node_modules && npm install && npm run pods"

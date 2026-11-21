@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/testDataServices.mjs && node scripts/testAppDataFlow.mjs && node --test tests/displayAccuracy.test.mjs",
     "deploy": "netlify deploy --prod",
     "refresh:swim-cache": "node scripts/generateSwimmingCache.mjs",
     "refresh:swim-cache:lite": "node scripts/generateSwimmingLiteCache.mjs"

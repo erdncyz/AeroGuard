@@ -97,7 +97,7 @@ struct WeatherView: View {
 
                                     // Temperature
                                     HStack(alignment: .top, spacing: 4) {
-                                        Text("\(Int(weather.temperature.value))")
+                                        Text("\(weather.temperature.converted(to: .celsius).value.formatted(.number.precision(.fractionLength(1))))")
                                             .font(
                                                 .system(size: 84, weight: .thin, design: .rounded)
                                             )
@@ -121,7 +121,7 @@ struct WeatherView: View {
                                 HStack(spacing: 20) {
                                     QuickStatView(
                                         icon: "thermometer",
-                                        value: "\(Int(weather.apparentTemperature.value))°",
+                                        value: "\(weather.apparentTemperature.converted(to: .celsius).value.formatted(.number.precision(.fractionLength(1))))°",
                                         label: "Hissedilen"
                                     )
 
@@ -141,8 +141,8 @@ struct WeatherView: View {
 
                                     QuickStatView(
                                         icon: "wind",
-                                        value: "\(Int(weather.wind.speed.value))",
-                                        label: "km/s"
+                                        value: "\(weather.wind.speed.converted(to: .kilometersPerHour).value.formatted(.number.precision(.fractionLength(1))))",
+                                        label: "km/sa"
                                     )
                                 }
                                 .padding(.horizontal, 32)
@@ -167,14 +167,14 @@ struct WeatherView: View {
                                 ModernWeatherCard(
                                     icon: "eye.fill",
                                     title: "Görüş Mesafesi",
-                                    value: "\(Int(weather.visibility.value / 1000)) km",
+                                    value: "\(weather.visibility.converted(to: .kilometers).value.formatted(.number.precision(.fractionLength(1)))) km",
                                     color: .blue
                                 )
 
                                 ModernWeatherCard(
                                     icon: "gauge",
                                     title: "Basınç",
-                                    value: "\(Int(weather.pressure.value)) mb",
+                                    value: "\(weather.pressure.converted(to: .hectopascals).value.formatted(.number.precision(.fractionLength(1)))) hPa",
                                     color: .purple
                                 )
 
@@ -189,7 +189,7 @@ struct WeatherView: View {
                                 ModernWeatherCard(
                                     icon: "wind",
                                     title: "Rüzgar Hızı",
-                                    value: "\(Int(weather.wind.speed.value)) km/s",
+                                    value: "\(weather.wind.speed.converted(to: .kilometersPerHour).value.formatted(.number.precision(.fractionLength(1)))) km/sa",
                                     color: .cyan
                                 )
                             }
@@ -408,7 +408,7 @@ struct ModernHourlyCard: View {
                 .symbolRenderingMode(.hierarchical)
                 .frame(height: 28)
 
-            Text("\(Int(hourWeather.temperature.value))°")
+            Text("\(hourWeather.temperature.converted(to: .celsius).value.formatted(.number.precision(.fractionLength(1))))°")
                 .font(.headline)
                 .fontWeight(.bold)
                 .foregroundColor(.darkTextColor)
@@ -468,7 +468,7 @@ struct ModernDailyCard: View {
 
             // Temperature range with visual bar
             HStack(spacing: 12) {
-                Text("\(Int(dayWeather.lowTemperature.value))°")
+                Text("\(dayWeather.lowTemperature.converted(to: .celsius).value.formatted(.number.precision(.fractionLength(1))))°")
                     .font(.subheadline)
                     .foregroundColor(.secondaryTextColor)
                     .frame(width: 35, alignment: .trailing)
@@ -501,7 +501,7 @@ struct ModernDailyCard: View {
                 }
                 .frame(width: 60, height: 6)
 
-                Text("\(Int(dayWeather.highTemperature.value))°")
+                Text("\(dayWeather.highTemperature.converted(to: .celsius).value.formatted(.number.precision(.fractionLength(1))))°")
                     .font(.subheadline)
                     .fontWeight(.bold)
                     .foregroundColor(.darkTextColor)

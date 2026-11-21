@@ -18,6 +18,8 @@ import AQIHistoryChart from './components/AQIHistoryChart';
 import AppDownloadPage from './components/AppDownloadPage';
 import SwimmingQualityPanel from './components/SwimmingQualityPanel';
 
+type LocationContext = { source: 'gps'; lat: number; lng: number; accuracy: number } | { source: 'ip' };
+
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('tr');
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,16 @@ const App: React.FC = () => {
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availableCities, setAvailableCities] = useState<string[]>([]);
-  const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+  const [availableDistricts, setAvailableDistricts] = useState<SearchResult[]>([]);
+  const [locationContext, setLocationContext] = useState<LocationContext | null>(null);
+  const [locationError, setLocationError] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const [now, setNow] = useState(Date.now());
+  const locationRequest = useRef(0);
+  const stationRequest = useRef(0);
+  const countryRequest = useRef(0);
+  const provinceRequest = useRef(0);
+  const aiRequest = useRef(0);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [nearbyStations, setNearbyStations] = useState<NearbyStation[]>([]);
   const [pollenData, setPollenData] = useState<PollenData | null>(null);
@@ -93,56 +104,48 @@ const App: React.FC = () => {
   }, []);
 
   const loadLocationData = useCallback(async () => {
+    const requestId = ++locationRequest.current;
     setLoading(true);
+    setLocationError(false);
     try {
-      if (navigator.geolocation) {
+      const position = await new Promise<GeolocationPosition | null>((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        // The outer timer also covers native bridges that ignore geolocation options.
+        const timer = window.setTimeout(() => resolve(null), 16000);
         navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            try {
-              const data = await waqiService.fetchByGeo(pos.coords.latitude, pos.coords.longitude);
-              setStationData(data);
-            } catch (err) {
-              console.error('Geo veri hatası:', err);
-              // Hata durumunda IP'ye geç
-              const data = await waqiService.fetchByIP();
-              setStationData(data);
-            } finally {
-              setLoading(false);
-            }
-          },
-          async () => {
-            try {
-              const data = await waqiService.fetchByIP();
-              setStationData(data);
-            } catch (err) {
-              console.error('IP veri hatası:', err);
-            } finally {
-              setLoading(false);
-            }
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-          }
+          (pos) => { clearTimeout(timer); resolve(pos); },
+          () => { clearTimeout(timer); resolve(null); },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
-      } else {
-        try {
-          const data = await waqiService.fetchByIP();
-          setStationData(data);
-        } catch (err) {
-          console.error('Veri yükleme hatası:', err);
-        } finally {
-          setLoading(false);
-        }
+      });
+      if (requestId !== locationRequest.current) return;
+      const validPosition = position
+        && waqiService.isValidCoordinates(position.coords.latitude, position.coords.longitude)
+        && Number.isFinite(position.coords.accuracy) && position.coords.accuracy >= 0
+        && Number.isFinite(position.timestamp)
+        && Date.now() - position.timestamp <= 120000 && position.timestamp <= Date.now() + 5000;
+      const context: LocationContext = validPosition
+        ? { source: 'gps', lat: position.coords.latitude, lng: position.coords.longitude, accuracy: position.coords.accuracy }
+        : { source: 'ip' };
+      // Once GPS is known, a station API failure must not silently change the location.
+      const data = context.source === 'gps'
+        ? await waqiService.fetchByGeo(context.lat, context.lng)
+        : await waqiService.fetchByIP();
+      if (requestId === locationRequest.current) {
+        setLocationContext(context);
+        setStationData(data);
+        setNow(Date.now());
       }
     } catch (err) {
       console.error('Konum yükleme hatası:', err);
-      setLoading(false);
+      if (requestId === locationRequest.current) setLocationError(true);
+    } finally {
+      if (requestId === locationRequest.current) setLoading(false);
     }
   }, []);
 
   const loadCountryData = useCallback(async (country: string) => {
+    const requestId = ++countryRequest.current;
     if (!country) {
       setAvailableCities([]);
       setAvailableDistricts([]);
@@ -150,21 +153,14 @@ const App: React.FC = () => {
     }
 
     try {
-      const results = await waqiService.searchStations(country);
-
       if (country === 'Turkey') {
         // Turkiye icin hazir liste kullan
         setAvailableCities(TURKEY_PROVINCES);
       } else {
-        // Diger ulkeler icin API'den sehirleri cikar
-        const cities = results
-          .map(r => {
-            const parts = r.station.name.split(',');
-            return parts[1]?.trim() || parts[0]?.trim();
-          })
-          .filter((c, i, arr) => c && arr.indexOf(c) === i)
-          .sort();
-        setAvailableCities(cities);
+        const results = await waqiService.searchStations(country);
+        if (requestId !== countryRequest.current) return;
+        // A station name is not a structured city/country address. Keep its ID intact.
+        setAvailableDistricts(results.sort((a, b) => a.station.name.localeCompare(b.station.name)));
       }
 
     } catch (err) {
@@ -176,41 +172,73 @@ const App: React.FC = () => {
     loadLocationData();
     loadCountryData('Turkey');
 
-    // Loading timeout - 8 saniye sonra yine de UI'i goster
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.warn('Loading timeout - UI gosteriliyor');
-        setLoading(false);
-      }
-    }, 8000);
-
-    return () => clearTimeout(timeout);
+    const refresh = window.setInterval(() => { if (!document.hidden) loadLocationData(); }, 10 * 60 * 1000);
+    const clock = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => {
+      clearInterval(refresh);
+      clearInterval(clock);
+      locationRequest.current++;
+    };
   }, [loadLocationData, loadCountryData]);
 
   // Fetch nearby stations and pollen data when stationData changes
   useEffect(() => {
+    let cancelled = false;
+    setNearbyStations([]);
+    setPollenData(null);
+    setAqiHistory([]);
     if (stationData?.city?.geo) {
-      const [lat, lng] = stationData.city.geo;
+      const [lat, lng] = locationContext?.source === 'gps'
+        ? [locationContext.lat, locationContext.lng] : stationData.city.geo;
       waqiService.fetchNearbyStations(lat, lng, 6).then((stations) => {
-        // Exclude the current station itself
-        setNearbyStations(stations.filter(s => s.distance > 0.5));
-      }).catch(() => setNearbyStations([]));
+        if (!cancelled) setNearbyStations(stations.filter(s => s.uid !== stationData.idx));
+      }).catch(() => { if (!cancelled) setNearbyStations([]); });
 
       // Fetch pollen data from Open-Meteo
       fetchPollenData(lat, lng)
-        .then(res => setPollenData(res.current))
-        .catch(() => setPollenData(null));
+        .then(res => { if (!cancelled) setPollenData(res.current); })
+        .catch(() => { if (!cancelled) setPollenData(null); });
 
       // Fetch 7-day AQI history from Open-Meteo
       fetchAQIHistory(lat, lng)
-        .then(history => setAqiHistory(history))
-        .catch(() => setAqiHistory([]));
+        .then(history => { if (!cancelled) setAqiHistory(history); })
+        .catch(() => { if (!cancelled) setAqiHistory([]); });
     }
+    return () => { cancelled = true; };
+  }, [stationData, locationContext]);
+
+  useEffect(() => {
+    const publishObservation = () => {
+      if (!stationData) return;
+      const nativeWindow = window as Window & { webkit?: { messageHandlers?: { airQualityData?: { postMessage: (data: unknown) => void } } } };
+      nativeWindow.webkit?.messageHandlers?.airQualityData?.postMessage({
+        aqi: stationData.aqi, stationId: stationData.idx, location: stationData.city.name,
+        observedAt: stationData.time.iso, latitude: stationData.city.geo[0], longitude: stationData.city.geo[1],
+      });
+    };
+    publishObservation();
+    window.addEventListener('airQualityBridgeReady', publishObservation);
+    return () => window.removeEventListener('airQualityBridgeReady', publishObservation);
   }, [stationData]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSearchedPollenData(null);
+    if (searchedStationData) {
+      fetchPollenData(searchedStationData.city.geo[0], searchedStationData.city.geo[1])
+        .then(res => { if (!cancelled) setSearchedPollenData(res.current); })
+        .catch(() => { if (!cancelled) setSearchedPollenData(null); });
+    }
+    return () => { cancelled = true; };
+  }, [searchedStationData]);
 
   // Generate AI health advice for current location data
   useEffect(() => {
     let isCancelled = false;
+    aiRequest.current++;
+    setAiAnswer('');
+    setAiAnswerProvider(null);
+    setAiQuestionLoading(false);
 
     const generateAdvice = async () => {
       if (!stationData) {
@@ -296,60 +324,65 @@ const App: React.FC = () => {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
+    const requestId = ++stationRequest.current;
     setIsSearching(true);
+    setSearchError(false);
     try {
       const results = await waqiService.searchStations(searchQuery);
-      setSearchResults(results);
+      if (requestId === stationRequest.current) {
+        setSearchResults(results);
+        setSearchError(results.length === 0);
+      }
     } catch (err) {
       console.error(err);
+      if (requestId === stationRequest.current) setSearchError(true);
     } finally {
-      setIsSearching(false);
+      if (requestId === stationRequest.current) setIsSearching(false);
     }
   };
 
 
   const handleProvinceSelect = async (prov: string) => {
     if (!prov) return;
+    const requestId = ++stationRequest.current;
     setSearchLoading(true);
+    setSearchError(false);
+    setSearchResults([]);
     setSearchedStationData(null);
     setSearchedPollenData(null);
     try {
       const results = await waqiService.searchStations(prov);
-      if (results.length > 0) {
+      if (requestId !== stationRequest.current) return;
+      if (results.length === 1) {
         const data = await waqiService.fetchStationById(results[0].uid);
-        setSearchedStationData(data);
-        // Fetch pollen for searched location
-        if (data.city?.geo) {
-          fetchPollenData(data.city.geo[0], data.city.geo[1])
-            .then(res => setSearchedPollenData(res.current))
-            .catch(() => setSearchedPollenData(null));
-        }
-      }
+        if (requestId === stationRequest.current) setSearchedStationData(data);
+      } else setSearchResults(results);
+      if (results.length === 0) setSearchError(true);
     } catch (err) {
       console.error(err);
+      if (requestId === stationRequest.current) setSearchError(true);
     } finally {
-      setSearchLoading(false);
+      if (requestId === stationRequest.current) setSearchLoading(false);
     }
   };
 
   const selectStation = async (idx: number) => {
+    const requestId = ++stationRequest.current;
     setSearchLoading(true);
+    setIsSearching(false);
+    setSearchError(false);
     setSearchedStationData(null);
     setSearchedPollenData(null);
     setSearchResults([]);
     setSearchQuery('');
     try {
       const data = await waqiService.fetchStationById(idx);
-      setSearchedStationData(data);
-      if (data.city?.geo) {
-        fetchPollenData(data.city.geo[0], data.city.geo[1])
-          .then(res => setSearchedPollenData(res.current))
-          .catch(() => setSearchedPollenData(null));
-      }
+      if (requestId === stationRequest.current) setSearchedStationData(data);
     } catch (err) {
       console.error(err);
+      if (requestId === stationRequest.current) setSearchError(true);
     } finally {
-      setSearchLoading(false);
+      if (requestId === stationRequest.current) setSearchLoading(false);
     }
   };
 
@@ -371,10 +404,16 @@ const App: React.FC = () => {
     }
 
     setAiQuestionLoading(true);
-    const { text: answer, provider: answerProvider } = await askHealthQuestion(stationData, aiQuestion, lang);
-    setAiAnswer(answer);
-    setAiAnswerProvider(answerProvider);
-    setAiQuestionLoading(false);
+    const requestId = ++aiRequest.current;
+    try {
+      const { text: answer, provider: answerProvider } = await askHealthQuestion(stationData, aiQuestion, lang);
+      if (requestId === aiRequest.current) {
+        setAiAnswer(answer);
+        setAiAnswerProvider(answerProvider);
+      }
+    } finally {
+      if (requestId === aiRequest.current) setAiQuestionLoading(false);
+    }
   };
 
   if (loading && !stationData) {
@@ -396,6 +435,12 @@ const App: React.FC = () => {
 
   const aqiMeta = stationData ? getAqiMetadata(stationData.aqi) : null;
   const aqiText = aqiMeta ? t.aqiLevels[aqiMeta.key] : null;
+  const staleMeasurement = !!stationData && now - Date.parse(stationData.time.iso) > 3 * 60 * 60 * 1000;
+  const stationDistance = stationData && locationContext?.source === 'gps'
+    ? waqiService.getDistanceFromLatLonInKm(locationContext.lat, locationContext.lng, stationData.city.geo[0], stationData.city.geo[1]) : null;
+  const formatObservationTime = (iso: string) => new Date(iso).toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+  });
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-safe">
@@ -480,6 +525,12 @@ const App: React.FC = () => {
 
         <div className="h-4"></div>
 
+        {locationError && (
+          <div role="alert" className="max-w-5xl mx-auto mb-6 p-5 rounded-2xl bg-amber-50 border border-amber-200 text-sm text-amber-900">
+            <p>{lang === 'tr' ? 'Konumunuz için güncel istasyon verisi alınamadı. Varsa önceki ölçüm gösteriliyor.' : 'Station data could not be loaded for your location. Any previous observation remains displayed.'}</p>
+            <button onClick={loadLocationData} disabled={loading} className="mt-3 font-bold underline">{lang === 'tr' ? 'Yeniden dene' : 'Try again'}</button>
+          </div>
+        )}
 
         {stationData && (
           <main className="max-w-5xl mx-auto space-y-6 pb-10">
@@ -508,13 +559,19 @@ const App: React.FC = () => {
                         </div>
                         <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">{stationData.city.name}</h2>
                       </div>
+                      <p className="text-xs text-slate-500 mb-2">
+                        {locationContext?.source === 'gps'
+                          ? (lang === 'tr' ? `Cihaz konumu · Konum doğruluk yarıçapı ±${Math.round(locationContext.accuracy)} m · İstasyon ${stationDistance?.toFixed(1)} km uzakta` : `Device location · Location accuracy radius ±${Math.round(locationContext.accuracy)} m · Station ${stationDistance?.toFixed(1)} km away`)
+                          : (lang === 'tr' ? 'IP üzerinden yaklaşık konum · VPN ve ağ sağlayıcısı farklı şehir gösterebilir' : 'Approximate IP location · VPN or network provider may resolve to a different city')}
+                      </p>
+                      {staleMeasurement && <p role="status" className="text-sm text-amber-700 font-bold mb-2">{lang === 'tr' ? 'Ölçüm 3 saatten eski; güncel durumu yansıtmayabilir.' : 'Observation is over 3 hours old and may not reflect current conditions.'}</p>}
                       <p className="text-slate-500 text-sm leading-relaxed font-medium">{aqiText?.desc}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
                       <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
                         <p className="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest">{t.lastUpdate}</p>
-                        <p className="text-xs font-bold text-slate-700">{new Date(stationData.time.iso).toLocaleTimeString(lang === 'tr' ? 'tr-TR' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="text-xs font-bold text-slate-700">{formatObservationTime(stationData.time.iso)}</p>
                       </div>
                       <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
                         <p className="text-[8px] font-black text-slate-400 uppercase mb-1 tracking-widest">{t.dominantPollutant}</p>
@@ -525,24 +582,24 @@ const App: React.FC = () => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{t.pollutantBreakdown}</h3>
-                        <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter">{t.live}</span>
+                        <span className="text-[8px] font-black bg-slate-50 text-slate-600 px-2 py-0.5 rounded uppercase tracking-tighter">{lang === 'tr' ? 'İstasyon · AQI alt indeksleri' : 'Station · AQI subindices'}</span>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <PollutantCard label="PM 2.5" value={stationData.iaqi.pm25?.v} unit="µg/m³" description={t.pm25Desc} />
-                        <PollutantCard label="PM 10" value={stationData.iaqi.pm10?.v} unit="µg/m³" description={t.pm10Desc} />
-                        <PollutantCard label="Ozon (O₃)" value={stationData.iaqi.o3?.v} unit="ppb" description={t.o3Desc} />
-                        <PollutantCard label="Azot (NO₂)" value={stationData.iaqi.no2?.v} unit="ppb" description={t.no2Desc} />
+                        <PollutantCard label="PM 2.5" value={stationData.iaqi.pm25?.v} unit="AQI" description={t.pm25Desc} />
+                        <PollutantCard label="PM 10" value={stationData.iaqi.pm10?.v} unit="AQI" description={t.pm10Desc} />
+                        <PollutantCard label="Ozon (O₃)" value={stationData.iaqi.o3?.v} unit="AQI" description={t.o3Desc} />
+                        <PollutantCard label="Azot (NO₂)" value={stationData.iaqi.no2?.v} unit="AQI" description={t.no2Desc} />
                         {stationData.iaqi.co?.v !== undefined && (
-                          <PollutantCard label="CO" value={stationData.iaqi.co.v} unit="ppm" description={t.coDesc} />
+                          <PollutantCard label="CO" value={stationData.iaqi.co.v} unit="AQI" description={t.coDesc} />
                         )}
                         {stationData.iaqi.so2?.v !== undefined && (
-                          <PollutantCard label="SO₂" value={stationData.iaqi.so2.v} unit="ppb" description={t.so2Desc} />
+                          <PollutantCard label="SO₂" value={stationData.iaqi.so2.v} unit="AQI" description={t.so2Desc} />
                         )}
                       </div>
                       <div className="flex flex-wrap gap-3 text-[8px] font-bold">
                         <div className="flex items-center gap-1.5">
                           <div className="w-3 h-3 rounded-full bg-emerald-200"></div>
-                          <span className="text-slate-500">{lang === 'tr' ? 'Güvenli' : 'Safe'}</span>
+                          <span className="text-slate-500">{lang === 'tr' ? 'İyi' : 'Good'}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <div className="w-3 h-3 rounded-full bg-yellow-200"></div>
@@ -675,7 +732,7 @@ const App: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <p className="text-[10px] text-slate-500 leading-relaxed font-bold">
-                          {lang === 'tr' ? 'Sensör bulunmayan bölgeler için en yakın istasyon verileri gösterilir.' : 'For areas without sensors, the nearest station data is displayed.'}
+                          {lang === 'tr' ? 'AQI, adı ve konumu gösterilen istasyonun bildirdiği değerdir; bulunduğunuz noktada yapılmış bir ölçüm değildir. Polen ve geçmiş grafikler model verisidir.' : 'AQI is reported by the named monitoring station; it is not a measurement at your exact position. Pollen and historical charts use model data.'}
                         </p>
                       </div>
                     </div>
@@ -686,7 +743,7 @@ const App: React.FC = () => {
               {/* Forecast Chart */}
               {stationData.forecast && (
                 <div id="section-forecast" className="scroll-mt-safe">
-                  <ForecastChart forecast={stationData.forecast} lang={lang} />
+                  <ForecastChart forecast={stationData.forecast} lang={lang} timezoneOffset={stationData.time.tz} />
                 </div>
               )}
 
@@ -700,7 +757,7 @@ const App: React.FC = () => {
               {/* Pollen Forecast */}
               {pollenData && (
                 <section id="section-pollen" className="scroll-mt-safe">
-                  <PollenCard pollenData={pollenData} lang={lang} cityName={stationData.city.name} />
+                  <PollenCard pollenData={pollenData} lang={lang} cityName={locationContext?.source === 'gps' ? (lang === 'tr' ? 'Cihaz konumu' : 'Device location') : stationData.city.name} />
                 </section>
               )}
 
@@ -727,6 +784,12 @@ const App: React.FC = () => {
                       value={selectedCountry}
                       onChange={async (e) => {
                         const country = e.target.value;
+                        provinceRequest.current++;
+                        stationRequest.current++;
+                        setSearchedStationData(null);
+                        setSearchResults([]);
+                        setSearchError(false);
+                        setSearchLoading(false);
                         setSelectedCountry(country);
                         setSelectedProvince('');
                         setSelectedDistrict('');
@@ -749,12 +812,22 @@ const App: React.FC = () => {
 
                   {/* Province Selection */}
                   <div className="relative">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : t.selectCity}</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{selectedCountry === 'Turkey' ? t.selectProvince : (lang === 'tr' ? 'İstasyon seçin' : 'Select station')}</label>
                     <select
                       value={selectedProvince}
                       onChange={async (e) => {
                         const province = e.target.value;
+                        const requestId = ++provinceRequest.current;
+                        stationRequest.current++;
+                        setSearchedStationData(null);
+                        setSearchResults([]);
+                        setSearchError(false);
+                        setSearchLoading(false);
                         setSelectedProvince(province);
+                        if (selectedCountry !== 'Turkey') {
+                          setSelectedDistrict(province);
+                          return;
+                        }
                         setSelectedDistrict('');
                         setAvailableDistricts([]);
 
@@ -762,25 +835,22 @@ const App: React.FC = () => {
                         if (province) {
                           try {
                             const results = await waqiService.searchStations(province);
-                            // Sonuclardan benzersiz ilce isimlerini cikar
-                            const districts = results
-                              .map(r => {
-                                const parts = r.station.name.split(',');
-                                return parts[0]?.trim();
-                              })
-                              .filter((d, i, arr) => d && arr.indexOf(d) === i)
-                              .sort();
-                            setAvailableDistricts(districts);
+                            // Station IDs avoid guessing districts from comma-separated names.
+                            if (requestId === provinceRequest.current) {
+                              setAvailableDistricts(results.sort((a, b) => a.station.name.localeCompare(b.station.name, lang === 'tr' ? 'tr' : 'en')));
+                            }
                           } catch (err) {
                             console.error('Ilceler yuklenemedi:', err);
                           }
                         }
                       }}
-                      disabled={!selectedCountry || availableCities.length === 0}
+                      disabled={!selectedCountry || (selectedCountry === 'Turkey' ? availableCities.length === 0 : availableDistricts.length === 0)}
                       className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-slate-800 outline-none appearance-none pr-10 cursor-pointer hover:border-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="">-</option>
-                      {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
+                      {selectedCountry === 'Turkey'
+                        ? availableCities.map(city => <option key={city} value={city}>{city}</option>)
+                        : availableDistricts.map(station => <option key={station.uid} value={String(station.uid)}>{station.station.name}</option>)}
                     </select>
                     <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -790,8 +860,8 @@ const App: React.FC = () => {
                   </div>
 
                   {/* District Selection */}
-                  <div className="relative">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{t.selectDistrict}</label>
+                  <div className="relative" hidden={selectedCountry !== 'Turkey'}>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">{lang === 'tr' ? 'İstasyon seçin' : 'Select station'}</label>
                     <select
                       value={selectedDistrict}
                       onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -800,7 +870,7 @@ const App: React.FC = () => {
                     >
                       <option value="">-</option>
                       {availableDistricts.map(district => (
-                        <option key={district} value={district}>{district}</option>
+                        <option key={district.uid} value={String(district.uid)}>{district.station.name}</option>
                       ))}
                     </select>
                     <div className="absolute right-4 bottom-4 pointer-events-none text-slate-400">
@@ -814,7 +884,8 @@ const App: React.FC = () => {
                   <div className="flex items-end">
                     <button
                       onClick={() => {
-                        const searchTerm = selectedDistrict || selectedProvince || selectedCountry;
+                        if (selectedDistrict) { selectStation(Number(selectedDistrict)); return; }
+                        const searchTerm = selectedProvince || selectedCountry;
                         if (searchTerm) {
                           handleProvinceSelect(searchTerm);
                         }
@@ -830,6 +901,17 @@ const App: React.FC = () => {
                   </div>
 
                   {/* Search Loading Indicator */}
+                  {searchError && <p role="alert" className="col-span-full text-sm text-amber-700">{lang === 'tr' ? 'Geçerli istasyon verisi bulunamadı. Başka bir istasyon seçin veya yeniden deneyin.' : 'No valid station data found. Select another station or try again.'}</p>}
+                  {searchResults.length > 0 && (
+                    <div className="col-span-full space-y-2">
+                      <p className="text-sm text-slate-600">{lang === 'tr' ? 'Sonuçlardan ölçüm istasyonunu seçin:' : 'Choose a monitoring station from the results:'}</p>
+                      {searchResults.map(result => (
+                        <button key={result.uid} onClick={() => selectStation(result.uid)} className="block w-full text-left rounded-xl bg-slate-50 border border-slate-200 p-3 text-sm font-bold text-slate-700">
+                          {result.station.name} · #{result.uid}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {searchLoading && (
                     <div className="col-span-full flex justify-center py-8">
                       <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -852,6 +934,8 @@ const App: React.FC = () => {
 
                           <div className="flex-1 text-center md:text-left">
                             <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">{searchedStationData.city.name}</h3>
+                            <p className="text-xs text-slate-500 mb-2">{formatObservationTime(searchedStationData.time.iso)} · {lang === 'tr' ? 'Kirleticiler: AQI alt indeksi' : 'Pollutants: AQI subindex'}</p>
+                            {now - Date.parse(searchedStationData.time.iso) > 3 * 60 * 60 * 1000 && <p className="text-xs text-amber-700 mb-2">{lang === 'tr' ? 'Ölçüm 3 saatten eski.' : 'Observation is over 3 hours old.'}</p>}
                             <div className={`inline-flex items-center px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest mb-3 ${getAqiMetadata(searchedStationData.aqi).color.replace('bg-', 'bg-').replace('500', '100').replace('text-white', 'text-slate-700')} text-slate-600`}>
                               {t.aqiLevels[getAqiMetadata(searchedStationData.aqi).key].label}
                             </div>
@@ -905,7 +989,7 @@ const App: React.FC = () => {
                                 </div>
                                 <div className="bg-indigo-50 p-2 rounded-xl border border-indigo-100">
                                   <p className="text-[7px] font-black text-slate-400 uppercase">{t.press}</p>
-                                  <p className="text-xs font-black text-indigo-600">{searchedStationData.iaqi.p?.v ?? '-'}</p>
+                                  <p className="text-xs font-black text-indigo-600">{searchedStationData.iaqi.p?.v ?? '-'} hPa</p>
                                 </div>
                                 <div className="bg-cyan-50 p-2 rounded-xl border border-cyan-100">
                                   <p className="text-[7px] font-black text-slate-400 uppercase">{t.wind}</p>
@@ -914,47 +998,11 @@ const App: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* UV Tahmini */}
-                            {searchedStationData.forecast?.daily?.uvi && searchedStationData.forecast.daily.uvi.length > 0 && (
-                              <div className="mb-3">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{lang === 'tr' ? 'UV İndeksi' : 'UV Index'}</p>
-                                <div className="flex gap-2 overflow-x-auto">
-                                  {searchedStationData.forecast.daily.uvi.slice(0, 5).map((uv, i) => {
-                                    const uvColor = uv.avg <= 2 ? 'bg-emerald-100 text-emerald-700' : uv.avg <= 5 ? 'bg-yellow-100 text-yellow-700' : uv.avg <= 7 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700';
-                                    return (
-                                      <div key={i} className={`${uvColor} px-3 py-2 rounded-xl text-center min-w-[52px]`}>
-                                        <p className="text-[7px] font-black uppercase">{new Date(uv.day).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' })}</p>
-                                        <p className="text-sm font-black">{uv.avg}</p>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
+                            {searchedStationData.forecast?.daily?.uvi?.length > 0 && (
+                              <ForecastChart forecast={{ daily: { uvi: searchedStationData.forecast.daily.uvi } }} lang={lang} timezoneOffset={searchedStationData.time.tz} />
                             )}
-
-                            {/* Polen */}
                             {searchedPollenData && (
-                              <div>
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{lang === 'tr' ? 'Polen' : 'Pollen'}</p>
-                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                                  {[
-                                    { key: 'grass' as const, icon: '🌾', label: lang === 'tr' ? 'Çimen' : 'Grass' },
-                                    { key: 'birch' as const, icon: '🌳', label: lang === 'tr' ? 'Huş' : 'Birch' },
-                                    { key: 'alder' as const, icon: '🌿', label: lang === 'tr' ? 'Kızılağaç' : 'Alder' },
-                                    { key: 'olive' as const, icon: '🫒', label: lang === 'tr' ? 'Zeytin' : 'Olive' },
-                                    { key: 'mugwort' as const, icon: '🌱', label: lang === 'tr' ? 'Yavşan' : 'Mugwort' },
-                                    { key: 'ragweed' as const, icon: '🌼', label: lang === 'tr' ? 'Kanarya' : 'Ragweed' },
-                                  ].map(p => {
-                                    const val = searchedPollenData[p.key];
-                                    return (
-                                      <div key={p.key} className="bg-amber-50 p-2 rounded-xl border border-amber-100">
-                                        <p className="text-[7px] font-black text-slate-400 uppercase">{p.icon} {p.label}</p>
-                                        <p className="text-xs font-black text-amber-700">{val !== null ? Math.round(val) : '-'}</p>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
+                              <PollenCard pollenData={searchedPollenData} lang={lang} cityName={searchedStationData.city.name} />
                             )}
                           </div>
                         </div>
@@ -967,6 +1015,7 @@ const App: React.FC = () => {
               {/* Nearby Stations */}
               {nearbyStations.length > 0 && (
                 <section id="section-nearby" className="bg-white rounded-[2.5rem] p-5 sm:p-6 shadow-sm border border-slate-100 scroll-mt-safe">
+                  <p className="text-xs text-slate-500 mb-3">{locationContext?.source === 'gps' ? (lang === 'tr' ? 'Mesafeler cihaz konumuna göredir.' : 'Distances are relative to the device location.') : (lang === 'tr' ? 'Mesafeler ana istasyona göredir; IP konumu yaklaşıktır.' : 'Distances are relative to the main station; IP location is approximate.')}</p>
                   <div className="flex items-center gap-2 mb-5">
                     <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse"></span>
                     <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
@@ -979,16 +1028,9 @@ const App: React.FC = () => {
                       return (
                         <button
                           key={station.uid}
-                          onClick={async () => {
-                            setLoading(true);
-                            try {
-                              const data = await waqiService.fetchStationById(station.uid);
-                              setStationData(data);
-                            } catch (err) {
-                              console.error('Station fetch error:', err);
-                            } finally {
-                              setLoading(false);
-                            }
+                          onClick={() => {
+                            selectStation(station.uid);
+                            document.getElementById('section-explore')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                           }}
                           className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all text-left active:scale-[0.98]"
                         >
@@ -1097,7 +1139,7 @@ const App: React.FC = () => {
                 { range: '101-150', label: t.aqiLevels.sensitive.label, color: 'bg-orange-500' },
                 { range: '151-200', label: t.aqiLevels.unhealthy.label, color: 'bg-red-500' },
                 { range: '201-300', label: t.aqiLevels.veryUnhealthy.label, color: 'bg-purple-500' },
-                { range: '300+', label: t.aqiLevels.hazardous.label, color: 'bg-rose-900' }
+                { range: '301+', label: t.aqiLevels.hazardous.label, color: 'bg-rose-900' }
               ].map((item, idx) => (
                 <div key={idx} className="text-center">
                   <div className={`${item.color} text-white py-3 px-2 rounded-2xl mb-2 shadow-lg`}>

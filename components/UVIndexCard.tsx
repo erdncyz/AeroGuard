@@ -10,28 +10,29 @@ interface UVDay {
 interface UVIndexCardProps {
   uviForecast: UVDay[];
   lang: 'tr' | 'en';
+  timezoneOffset?: string;
 }
 
 const getUVLevel = (uvi: number) => {
-  if (uvi <= 2)  return { label: { tr: 'Düşük', en: 'Low' },         color: 'emerald', spf: null,   icon: '🌤️' };
-  if (uvi <= 5)  return { label: { tr: 'Orta', en: 'Moderate' },     color: 'yellow',  spf: 30,    icon: '☀️' };
-  if (uvi <= 7)  return { label: { tr: 'Yüksek', en: 'High' },       color: 'orange',  spf: 50,    icon: '🌞' };
-  if (uvi <= 10) return { label: { tr: 'Çok Yüksek', en: 'Very High' }, color: 'rose', spf: 50,    icon: '🔆' };
+  if (uvi < 3)  return { label: { tr: 'Düşük', en: 'Low' },         color: 'emerald', spf: null,   icon: '🌤️' };
+  if (uvi < 6)  return { label: { tr: 'Orta', en: 'Moderate' },     color: 'yellow',  spf: 30,    icon: '☀️' };
+  if (uvi < 8)  return { label: { tr: 'Yüksek', en: 'High' },       color: 'orange',  spf: 50,    icon: '🌞' };
+  if (uvi < 11) return { label: { tr: 'Çok Yüksek', en: 'Very High' }, color: 'rose', spf: 50,    icon: '🔆' };
   return           { label: { tr: 'Aşırı', en: 'Extreme' },          color: 'purple',  spf: 50,    icon: '⚠️' };
 };
 
 const getTips = (uvi: number, lang: 'tr' | 'en') => {
   if (lang === 'tr') {
-    if (uvi <= 2)  return ['Güneş koruması gerekmez', 'Dışarıda zaman geçirebilirsiniz'];
-    if (uvi <= 5)  return ['SPF 30+ güneş kremi sürün', 'Öğle saatlerinde şapka takın'];
-    if (uvi <= 7)  return ['SPF 50+ güneş kremi şart', 'Güneş gözlüğü ve şapka takın', '10:00–16:00 arasında gölgede kalın'];
-    if (uvi <= 10) return ['SPF 50+ güneş kremi sürün', 'Koruyucu kıyafet giyin', '10:00–16:00 arasında dışarı çıkmayın'];
+    if (uvi < 3)  return ['Güneş koruması gerekmez', 'Dışarıda zaman geçirebilirsiniz'];
+    if (uvi < 6)  return ['SPF 30+ güneş kremi sürün', 'Öğle saatlerinde şapka takın'];
+    if (uvi < 8)  return ['SPF 50+ güneş kremi şart', 'Güneş gözlüğü ve şapka takın', '10:00–16:00 arasında gölgede kalın'];
+    if (uvi < 11) return ['SPF 50+ güneş kremi sürün', 'Koruyucu kıyafet giyin', '10:00–16:00 arasında dışarı çıkmayın'];
     return ['Maksimum koruma gerekli', 'Öğle saatlerinde kapalı alanda kalın', 'Tüm cildinizi kapatın'];
   } else {
-    if (uvi <= 2)  return ['No protection needed', 'Enjoy time outdoors'];
-    if (uvi <= 5)  return ['Apply SPF 30+ sunscreen', 'Wear a hat around midday'];
-    if (uvi <= 7)  return ['SPF 50+ sunscreen essential', 'Wear sunglasses and a hat', 'Seek shade 10:00–16:00'];
-    if (uvi <= 10) return ['Apply SPF 50+ sunscreen', 'Wear protective clothing', 'Avoid outdoors 10:00–16:00'];
+    if (uvi < 3)  return ['No protection needed', 'Enjoy time outdoors'];
+    if (uvi < 6)  return ['Apply SPF 30+ sunscreen', 'Wear a hat around midday'];
+    if (uvi < 8)  return ['SPF 50+ sunscreen essential', 'Wear sunglasses and a hat', 'Seek shade 10:00–16:00'];
+    if (uvi < 11) return ['Apply SPF 50+ sunscreen', 'Wear protective clothing', 'Avoid outdoors 10:00–16:00'];
     return ['Maximum protection required', 'Stay indoors at midday', 'Cover all exposed skin'];
   }
 };
@@ -47,17 +48,27 @@ const colorMap: Record<string, { bg: string; light: string; text: string; ring: 
 // Map UV value (0-12+) to 0-100% for gauge
 const uvToPercent = (uvi: number): number => Math.min(100, (uvi / 12) * 100);
 
-const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
-  if (!uviForecast || uviForecast.length === 0) return null;
+const getStationDay = (offset?: string): string => {
+  const match = offset?.match(/^([+-])(\d{2}):(\d{2})$/);
+  if (match) {
+    const minutes = (Number(match[2]) * 60 + Number(match[3])) * (match[1] === '-' ? -1 : 1);
+    return new Date(Date.now() + minutes * 60000).toISOString().slice(0, 10);
+  }
+  const date = new Date();
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+};
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayData = uviForecast.find(d => d.day === today) ?? uviForecast[0];
-  const upcomingDays = uviForecast.slice(0, 5);
-
-  const [selectedDay, setSelectedDay] = useState<string>(todayData.day);
-  const selectedData = upcomingDays.find(d => d.day === selectedDay) ?? todayData;
+const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang, timezoneOffset }) => {
+  const [selectedDay, setSelectedDay] = useState('');
+  const today = getStationDay(timezoneOffset);
+  const formatValue = (value: number) => value.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US', { maximumFractionDigits: 1 });
+  const upcomingDays = (uviForecast || [])
+    .filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day.day) && day.day >= today && Number.isFinite(day.max) && day.max >= 0)
+    .sort((a, b) => a.day.localeCompare(b.day)).slice(0, 5);
+  const selectedData = upcomingDays.find(day => day.day === selectedDay) || upcomingDays[0];
+  if (!selectedData) return null;
   const selectedUVI = selectedData.max;
-  const isSelectedToday = selectedDay === today;
+  const isSelectedToday = selectedData.day === today;
 
   const level = getUVLevel(selectedUVI);
   const c = colorMap[level.color];
@@ -73,10 +84,10 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
           </svg>
         </div>
         <h3 className="text-sm font-black text-slate-900 tracking-tight">
-          {lang === 'tr' ? 'UV İndeksi' : 'UV Index'}
+          {lang === 'tr' ? 'UV İndeksi Tahmini' : 'UV Index Forecast'}
         </h3>
         <span className={`ml-auto text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-tighter ${c.light} ${c.text}`}>
-          {isSelectedToday ? (lang === 'tr' ? 'Bugün' : 'Today') : new Date(selectedDay).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
+          {isSelectedToday ? (lang === 'tr' ? 'Bugün' : 'Today') : new Date(selectedData.day + 'T12:00:00').toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })}
         </span>
       </div>
 
@@ -84,7 +95,7 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
         {/* Left: Big value + gauge */}
         <div className="flex flex-col items-center gap-4 flex-shrink-0 w-full md:w-auto">
           <div className={`w-32 h-32 rounded-full ${c.bg} text-white flex flex-col items-center justify-center shadow-xl ring-4 ${c.ring} transition-all duration-300`}>
-            <span className="text-4xl font-black leading-none">{selectedUVI}</span>
+            <span className="text-4xl font-black leading-none">{formatValue(selectedUVI)}</span>
             <span className="text-[9px] font-black uppercase tracking-widest opacity-80 mt-1">UV Max</span>
           </div>
 
@@ -144,14 +155,14 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
           {/* 5-Day UV Forecast */}
           <div>
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3">
-              {lang === 'tr' ? '5 Günlük UV' : '5-Day UV'}
+              {lang === 'tr' ? 'Günlük maksimum UV tahmini' : 'Daily maximum UV forecast'}
             </p>
             <div className="flex gap-2">
               {upcomingDays.map((d, i) => {
                 const lv = getUVLevel(d.max);
                 const dc = colorMap[lv.color];
                 const isDayToday = d.day === today;
-                const date = new Date(d.day);
+                const date = new Date(d.day + 'T12:00:00');
                 const dayName = isDayToday
                   ? (lang === 'tr' ? 'Bugün' : 'Today')
                   : date.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { weekday: 'short' });
@@ -160,13 +171,13 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
                     key={i}
                     onClick={() => setSelectedDay(d.day)}
                     className={`flex-1 rounded-2xl p-2.5 text-center border transition-all active:scale-95 ${
-                      selectedDay === d.day
+                      selectedData.day === d.day
                         ? `${dc.light} ${dc.text} border-current/20 ring-2 ring-offset-1 ${dc.ring}`
                         : 'bg-slate-50 border-slate-100 hover:border-slate-200'
                     }`}
                   >
-                    <p className={`text-[8px] font-black uppercase ${selectedDay === d.day ? dc.text : 'text-slate-400'}`}>{dayName}</p>
-                    <p className={`text-base font-black mt-0.5 ${selectedDay === d.day ? dc.text : 'text-slate-700'}`}>{d.max}</p>
+                    <p className={`text-[8px] font-black uppercase ${selectedData.day === d.day ? dc.text : 'text-slate-400'}`}>{dayName}</p>
+                    <p className={`text-base font-black mt-0.5 ${selectedData.day === d.day ? dc.text : 'text-slate-700'}`}>{formatValue(d.max)}</p>
                     <p className="text-[7px] font-bold text-slate-400">{lv.icon}</p>
                   </button>
                 );
@@ -195,6 +206,7 @@ const UVIndexCard: React.FC<UVIndexCardProps> = ({ uviForecast, lang }) => {
           ))}
         </div>
       </div>
+      <p className="text-[9px] text-slate-500 mt-4">{lang === 'tr' ? 'Kaynak: WAQI model tahmini · Anlık UV ölçümü değildir.' : 'Source: WAQI model forecast · Not a current UV observation.'}</p>
     </section>
   );
 };
